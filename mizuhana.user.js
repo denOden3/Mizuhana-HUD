@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.7
+// @version      0.7.8
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7431,6 +7431,57 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.8 — HOME vertical fit + status clock
+       Engineering-only pass: stronger story frame, HUD extends
+       toward composer, date/time separated, clock enlarged.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
+            height: min(650px, calc(100dvh - 105px)) !important;
+            min-height: 500px !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            border-width: 3px !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-tracker-world {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto !important;
+            grid-template-areas:
+                "date time"
+                "stats time" !important;
+            align-items: stretch !important;
+            column-gap: 16px !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-tracker-date {
+            grid-area: date !important;
+            align-self: end !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-status-row {
+            grid-area: stats !important;
+            align-self: start !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-tracker-time {
+            grid-area: time !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 138px !important;
+            padding-left: 16px !important;
+            border-left: 2px solid color-mix(in srgb, var(--mizu-accent) 48%, var(--mizu-border)) !important;
+            font-size: 1.38em !important;
+            font-weight: 800 !important;
+            line-height: 1.05 !important;
+            white-space: nowrap !important;
+        }
+    `);
 
 
     /* =========================================================
