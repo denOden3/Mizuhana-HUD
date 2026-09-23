@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.8
+// @version      0.7.9
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7431,6 +7431,31 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.9 — actual HUD shell height repair
+       The HOME page was growing, but the outer HUD still had an
+       older max-height cap. Size the shell itself toward composer.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active),
+        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) {
+            height: calc(100dvh - 105px) !important;
+            max-height: calc(100dvh - 105px) !important;
+        }
+
+        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main,
+        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
+            height: calc(100% - 48px) !important;
+            min-height: 0 !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+    `);
 
 
     /* =========================================================
