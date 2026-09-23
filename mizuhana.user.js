@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.3
+// @version      0.7.4
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -6118,6 +6118,30 @@ Rules:
             .filter(Boolean)
             .map(block => `<p class="mizu-scene-paragraph">${escapeHTML(block)}</p>`)
             .join('');
+    }
+
+
+    function visibleTasksHTML() {
+        const tasks = Array.isArray(state.tasks) ? state.tasks.slice(0, 3) : [];
+
+        if (!tasks.length) {
+            return `
+                <div class="mizu-task-row">
+                    <span class="mizu-task-name">No pinned tasks</span>
+                </div>
+            `;
+        }
+
+        return tasks.map(task => `
+            <div class="mizu-task-row">
+                <span class="mizu-task-name">
+                    ${escapeHTML(task?.icon || '•')} ${escapeHTML(task?.name || 'Task')}
+                </span>
+                <span class="mizu-task-time">
+                    ${escapeHTML(task?.time || '')}
+                </span>
+            </div>
+        `).join('');
     }
 
 
