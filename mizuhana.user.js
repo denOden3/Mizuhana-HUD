@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.5
+// @version      0.7.6
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7431,6 +7431,69 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.6 — HOME composition pass
+       Taller HOME, narrative-only scrolling, boxed narration,
+       and stronger choice contrast. Tracker itself does not scroll.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
+            height: min(525px, calc(100dvh - 165px)) !important;
+            min-height: 430px !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel {
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            flex: 1 1 auto !important;
+            min-height: 130px !important;
+            max-height: none !important;
+            margin: 0 0 18px !important;
+            padding: 16px 18px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            border: 1px solid color-mix(in srgb, var(--mizu-accent) 58%, var(--mizu-border)) !important;
+            border-radius: 11px !important;
+            background: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg)) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 2px 8px rgba(0,0,0,.045) !important;
+            scrollbar-width: thin !important;
+            scrollbar-color: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-text)) transparent !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar {
+            width: 8px !important;
+        }
+        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar-track {
+            background: transparent !important;
+        }
+        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-text)) !important;
+            border: 2px solid transparent !important;
+            border-radius: 999px !important;
+            background-clip: padding-box !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-choice {
+            background: color-mix(in srgb, var(--mizu-accent) 15%, var(--mizu-panel)) !important;
+            border: 1px solid color-mix(in srgb, var(--mizu-accent) 70%, var(--mizu-border)) !important;
+            box-shadow: 0 2px 7px rgba(0,0,0,.055) !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-choice:hover {
+            background: color-mix(in srgb, var(--mizu-accent) 24%, var(--mizu-panel)) !important;
+            border-color: var(--mizu-accent) !important;
+        }
+    `);
 
 
     /* =========================================================
