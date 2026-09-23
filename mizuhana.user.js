@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.9
+// @version      0.7.10
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7431,6 +7431,64 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.10 — HOME space allocation repair
+       Override the older auto-height rule that was still winning,
+       then give narration priority over oversized choices.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active),
+        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) {
+            height: calc(100dvh - 105px) !important;
+            min-height: 0 !important;
+            max-height: calc(100dvh - 105px) !important;
+        }
+
+        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main,
+        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
+            height: calc(100% - 45px) !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel {
+            display: grid !important;
+            grid-template-rows: minmax(210px, 1fr) auto auto !important;
+            align-content: stretch !important;
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            min-height: 0 !important;
+            height: auto !important;
+            margin-bottom: 12px !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-question {
+            margin: 8px 0 7px !important;
+            padding-top: 0 !important;
+            border-top: 0 !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-choices {
+            display: grid !important;
+            gap: 6px !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-choice {
+            width: 100% !important;
+            padding: 7px 10px !important;
+            line-height: 1.34 !important;
+            min-height: 0 !important;
+        }
+    `);
 
 
     /* =========================================================
