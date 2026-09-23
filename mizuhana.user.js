@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.12
+// @version      0.7.13
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7431,6 +7431,22 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.13 — MOBILE narrative selector fix
+       Mobile is not guaranteed to carry the compact display class.
+       Target mobile HOME directly so the story-first sizing applies.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            height: min(52dvh, 430px) !important;
+            max-height: min(52dvh, 430px) !important;
+            min-height: 320px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+    `);
 
 
     /* =========================================================
