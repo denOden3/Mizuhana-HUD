@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.2
+// @version      0.7.3
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7414,7 +7414,7 @@ Rules:
        Runtime CSS: kept outside the large stylesheet template so
        it cannot accidentally corrupt the script during updates.
        ========================================================= */
-    GM_addStyle(\`
+    GM_addStyle(`
         /* =====================================================
            v0.7.1 — Destination scrollbar ghost exorcism
            The destination itself was already overflow:hidden;
@@ -7448,6 +7448,6 @@ Rules:
             display: none !important;
         }
 
-    \`);
+    `);
 
 })();
