@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.4
+// @version      0.7.5
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7431,6 +7431,40 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.5 — HOME height / overflow repair
+       One bug per surgery: remove the desktop dead zone while
+       preserving readable text, story scrolling, and fixed tracker.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar):not(.mizu-title-active) {
+            height: auto !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
+            height: min(445px, calc(100dvh - 190px)) !important;
+            min-height: 360px !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel,
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            scrollbar-width: thin;
+        }
+    `);
 
 
     /* =========================================================
