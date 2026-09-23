@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.0
+// @version      0.7.1
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -5531,7 +5531,41 @@ Rules:
         }
 
 
-    `);
+    
+        /* =====================================================
+           v0.7.1 — Destination scrollbar ghost exorcism
+           The destination itself was already overflow:hidden;
+           the visible rail belonged to a scrollable ancestor.
+           ===================================================== */
+        #mizuhana-hud #mizu-main:has(.mizu-region-creator),
+        #mizuhana-hud .mizu-main:has(.mizu-region-creator),
+        #mizuhana-hud .mizu-title-screen:has(.mizu-region-creator) {
+            overflow: hidden !important;
+            scrollbar-width: none !important;
+            scrollbar-gutter: auto !important;
+        }
+
+        #mizuhana-hud #mizu-main:has(.mizu-region-creator)::-webkit-scrollbar,
+        #mizuhana-hud .mizu-main:has(.mizu-region-creator)::-webkit-scrollbar,
+        #mizuhana-hud .mizu-title-screen:has(.mizu-region-creator)::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+            background: transparent !important;
+        }
+
+        #mizuhana-hud .mizu-region-creator {
+            scrollbar-width: none !important;
+            scrollbar-gutter: auto !important;
+        }
+
+        #mizuhana-hud .mizu-region-creator::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+        }
+
+`);
 
 
     /* =========================================================
