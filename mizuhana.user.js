@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.6
+// @version      0.7.7
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7431,6 +7431,27 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.7 — HOME proportions
+       One focused surgery: give HOME enough vertical room, make
+       narration match the choice width, and strengthen its frame.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
+            height: min(565px, calc(100dvh - 145px)) !important;
+            min-height: 470px !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            width: 100% !important;
+            max-width: none !important;
+            box-sizing: border-box !important;
+            border-width: 2px !important;
+            border-color: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-border)) !important;
+        }
+    `);
 
 
     /* =========================================================
