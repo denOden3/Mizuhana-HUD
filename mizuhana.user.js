@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.19
+// @version      0.7.20
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -5302,7 +5302,7 @@ Rules:
             font-size: 1.04em;
             line-height: 1.62 !important;
             letter-spacing: .005em;
-            text-align: left !important;
+            text-align: justify !important;
             text-wrap: pretty;
             max-width: 38ch;
             margin-left: auto !important;
@@ -7650,7 +7650,18 @@ Rules:
         /* ---------- Desktop / compact HOME ---------- */
         #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
             height: 100% !important;
+            max-height: none !important;
             min-height: 0 !important;
+        }
+
+        /* Destination fits within the desktop title screen; mobile keeps its
+           scrollable main area for the longer vertical layout. */
+        #mizuhana-hud:not(.mizu-layout-mobile).mizu-title-active > #mizu-main:has(.mizu-region-creator) {
+            overflow-y: hidden !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile) .mizu-region-creator {
+            scrollbar-gutter: auto !important;
         }
 
         #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel,
@@ -7661,12 +7672,14 @@ Rules:
 
         #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel {
             display: grid !important;
-            grid-template-rows: minmax(210px, 1fr) auto auto !important;
+            grid-template-rows: minmax(0, 1fr) auto auto !important;
             align-content: stretch !important;
             overflow: hidden !important;
         }
 
         #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            display: block !important;
+            -webkit-line-clamp: unset !important;
             width: 100% !important;
             max-width: none !important;
             box-sizing: border-box !important;
