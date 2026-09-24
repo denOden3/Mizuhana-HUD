@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.17
+// @version      0.7.18
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7436,64 +7436,17 @@ Rules:
 
 
     /* =========================================================
-       v0.7.16 — MOBILE destination containment repair
-       Keep the proven HOME-sized mobile shell. Destination scrolls
-       inside #mizu-main; no fixed child may escape the HUD.
+       v0.7.18 — CONSOLIDATED LAYOUT RULES
+       Monkey housekeeping: one authoritative runtime layer replaces
+       the v0.7.2–v0.7.17 emergency override stack.
        ========================================================= */
     GM_addStyle(`
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) {
-            height: min(760px, calc(100dvh - 190px)) !important;
-            max-height: calc(100dvh - 190px) !important;
-            min-height: 330px !important;
-            overflow: hidden !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) > #mizu-main {
-            height: auto !important;
-            flex: 1 1 auto !important;
-            min-height: 0 !important;
-            max-height: none !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):has(.mizu-region-creator) > #mizu-main {
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            overscroll-behavior-y: contain !important;
-            -webkit-overflow-scrolling: touch !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-region-creator {
-            position: relative !important;
-            height: auto !important;
-            min-height: 100% !important;
-            max-height: none !important;
-            overflow: visible !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop {
-            position: absolute !important;
-            inset: 0 !important;
-            min-height: 100% !important;
-            pointer-events: none !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop-image,
-        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop-mist {
-            position: absolute !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.15 — unified page height + scrollable mobile destination
-       All normal pages use the same HUD shell height as HOME.
-       Destination keeps its seam fix while the outer main viewport scrolls.
-       ========================================================= */
-    GM_addStyle(`
+        /* ---------- Shared play shell ---------- */
         #mizuhana-hud:not(.mizu-display-bar):not(.mizu-title-active) {
             height: var(--mizu-play-height, calc(100dvh - 105px)) !important;
             max-height: var(--mizu-play-height, calc(100dvh - 105px)) !important;
             min-height: 0 !important;
+            overflow: hidden !important;
         }
 
         #mizuhana-hud:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
@@ -7501,45 +7454,126 @@ Rules:
             min-height: 0 !important;
         }
 
+        /* ---------- Desktop / compact HOME ---------- */
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel,
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel {
+            display: grid !important;
+            grid-template-rows: minmax(210px, 1fr) auto auto !important;
+            align-content: stretch !important;
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            width: 100% !important;
+            max-width: none !important;
+            box-sizing: border-box !important;
+            min-height: 0 !important;
+            height: auto !important;
+            margin: 0 0 12px !important;
+            padding: 16px 18px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            border: 3px solid color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-border)) !important;
+            border-radius: 11px !important;
+            background: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg)) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 2px 8px rgba(0,0,0,.045) !important;
+            scrollbar-width: thin !important;
+            scrollbar-color: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-text)) transparent !important;
+        }
+
+        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
+            overflow: hidden !important;
+        }
+
+        /* ---------- HOME tracker clock ---------- */
+        #mizuhana-hud .mizu-home .mizu-tracker-world {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto !important;
+            grid-template-areas: "date time" "stats time" !important;
+            align-items: stretch !important;
+            column-gap: 16px !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-tracker-date {
+            grid-area: date !important;
+            align-self: end !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-status-row {
+            grid-area: stats !important;
+            align-self: start !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-tracker-time {
+            grid-area: time !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 138px !important;
+            padding-left: 16px !important;
+            border-left: 2px solid color-mix(in srgb, var(--mizu-accent) 48%, var(--mizu-border)) !important;
+            font-size: 1.38em !important;
+            font-weight: 800 !important;
+            line-height: 1.05 !important;
+            white-space: nowrap !important;
+        }
+
+        /* ---------- Choices ---------- */
+        #mizuhana-hud .mizu-home .mizu-question {
+            margin: 8px 0 7px !important;
+            padding-top: 0 !important;
+            border-top: 0 !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-choices {
+            display: grid !important;
+            gap: 6px !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-choice {
+            width: 100% !important;
+            min-height: 0 !important;
+            padding: 7px 10px !important;
+            line-height: 1.34 !important;
+            background: color-mix(in srgb, var(--mizu-accent) 15%, var(--mizu-panel)) !important;
+            border: 1px solid color-mix(in srgb, var(--mizu-accent) 70%, var(--mizu-border)) !important;
+            box-shadow: 0 2px 7px rgba(0,0,0,.055) !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-choice:hover {
+            background: color-mix(in srgb, var(--mizu-accent) 24%, var(--mizu-panel)) !important;
+            border-color: var(--mizu-accent) !important;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar {
+            width: 8px !important;
+        }
+        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar-track {
+            background: transparent !important;
+        }
+        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-text)) !important;
+            border: 2px solid transparent !important;
+            border-radius: 999px !important;
+            background-clip: padding-box !important;
+        }
+
+        /* ---------- Mobile play shell + story-first HOME ---------- */
         #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):not(.mizu-title-active) {
             --mizu-play-height: min(760px, calc(100dvh - 190px));
         }
 
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):has(.mizu-region-creator) > #mizu-main {
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            overscroll-behavior-y: contain !important;
-            -webkit-overflow-scrolling: touch !important;
-            scrollbar-width: none !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):has(.mizu-region-creator) > #mizu-main::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
-            display: none !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-region-creator {
-            height: auto !important;
-            min-height: 100% !important;
-            max-height: none !important;
-            overflow: visible !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop {
-            position: fixed !important;
-            inset: 0 !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.14 — MOBILE story-first handoff
-       Keep choices below the fold and let an upward swipe at the
-       bottom of narration continue into the outer HOME scroller.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) > #mizu-main {
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
             overflow-y: auto !important;
             overflow-x: hidden !important;
             overscroll-behavior-y: contain !important;
@@ -7559,11 +7593,76 @@ Rules:
             height: min(60dvh, 500px) !important;
             max-height: min(60dvh, 500px) !important;
             min-height: 360px !important;
+            margin: 0 0 12px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
             overscroll-behavior-y: auto !important;
         }
 
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) .mizu-home .mizu-question {
-            margin-bottom: 14px !important;
+        #mizuhana-hud.mizu-layout-mobile .mizu-question {
+            margin: 8px 0 14px !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile .mizu-choice {
+            padding: 6px 9px !important;
+            line-height: 1.28 !important;
+        }
+
+        /* ---------- Mobile title / destination containment ---------- */
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active:not(.mizu-display-bar) {
+            top: 6px !important;
+            height: min(760px, calc(100dvh - 190px)) !important;
+            max-height: calc(100dvh - 190px) !important;
+            min-height: 330px !important;
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active:not(.mizu-display-bar) > #mizu-main:has(.mizu-region-creator) {
+            height: calc(100% - 45px) !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            overscroll-behavior-y: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+            scrollbar-gutter: auto !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active:not(.mizu-display-bar) > #mizu-main:has(.mizu-region-creator)::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-creator {
+            position: relative !important;
+            box-sizing: border-box !important;
+            height: auto !important;
+            min-height: 100% !important;
+            max-height: none !important;
+            overflow: visible !important;
+            scrollbar-width: none !important;
+            scrollbar-gutter: auto !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-creator::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-backdrop {
+            position: absolute !important;
+            inset: 0 !important;
+            min-height: 100% !important;
+            overflow: hidden !important;
+            pointer-events: none !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-backdrop-image,
+        #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-backdrop-mist {
+            position: absolute !important;
         }
     `);
 
@@ -7599,410 +7698,5 @@ Rules:
         }, { passive: true });
     }
 
-
-    /* =========================================================
-       v0.7.13 — MOBILE narrative selector fix
-       Mobile is not guaranteed to carry the compact display class.
-       Target mobile HOME directly so the story-first sizing applies.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) .mizu-home .mizu-scene-text {
-            height: min(52dvh, 430px) !important;
-            max-height: min(52dvh, 430px) !important;
-            min-height: 320px !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.12 — MOBILE story-first viewport
-       Mobile can scroll the HUD, so prioritize narration height;
-       choices may continue below the visible fold.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud.mizu-layout-mobile.mizu-display-compact .mizu-scene-text {
-            height: min(48dvh, 400px) !important;
-            max-height: min(48dvh, 400px) !important;
-            min-height: 300px !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.11 — MOBILE narrative priority
-       Give the story a larger reading viewport and make choices
-       more compact without reducing the user's text size.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud.mizu-layout-mobile.mizu-display-compact .mizu-scene-text {
-            height: min(34dvh, 280px) !important;
-            max-height: min(34dvh, 280px) !important;
-            min-height: 190px !important;
-            margin: 0 0 12px !important;
-            overflow-y: auto !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-question {
-            margin: 10px 0 7px !important;
-            padding-top: 0 !important;
-            border-top: 0 !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-choices {
-            gap: 6px !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile .mizu-choice {
-            padding: 6px 9px !important;
-            line-height: 1.28 !important;
-            min-height: 0 !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.10 — HOME space allocation repair
-       Override the older auto-height rule that was still winning,
-       then give narration priority over oversized choices.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active),
-        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) {
-            height: calc(100dvh - 105px) !important;
-            min-height: 0 !important;
-            max-height: calc(100dvh - 105px) !important;
-        }
-
-        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main,
-        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
-            height: calc(100% - 45px) !important;
-            min-height: 0 !important;
-            overflow: hidden !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
-            height: 100% !important;
-            min-height: 0 !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel {
-            display: grid !important;
-            grid-template-rows: minmax(210px, 1fr) auto auto !important;
-            align-content: stretch !important;
-            overflow: hidden !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
-            min-height: 0 !important;
-            height: auto !important;
-            margin-bottom: 12px !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-question {
-            margin: 8px 0 7px !important;
-            padding-top: 0 !important;
-            border-top: 0 !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-choices {
-            display: grid !important;
-            gap: 6px !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-choice {
-            width: 100% !important;
-            padding: 7px 10px !important;
-            line-height: 1.34 !important;
-            min-height: 0 !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.9 — actual HUD shell height repair
-       The HOME page was growing, but the outer HUD still had an
-       older max-height cap. Size the shell itself toward composer.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active),
-        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) {
-            height: calc(100dvh - 105px) !important;
-            max-height: calc(100dvh - 105px) !important;
-        }
-
-        #mizuhana-hud.mizu-layout-desktop:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main,
-        #mizuhana-hud.mizu-layout-compact:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
-            height: calc(100% - 48px) !important;
-            min-height: 0 !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
-            height: 100% !important;
-            min-height: 0 !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.8 — HOME vertical fit + status clock
-       Engineering-only pass: stronger story frame, HUD extends
-       toward composer, date/time separated, clock enlarged.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
-            height: min(650px, calc(100dvh - 105px)) !important;
-            min-height: 500px !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
-            border-width: 3px !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-tracker-world {
-            display: grid !important;
-            grid-template-columns: minmax(0, 1fr) auto !important;
-            grid-template-areas:
-                "date time"
-                "stats time" !important;
-            align-items: stretch !important;
-            column-gap: 16px !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-tracker-date {
-            grid-area: date !important;
-            align-self: end !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-status-row {
-            grid-area: stats !important;
-            align-self: start !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-tracker-time {
-            grid-area: time !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            min-width: 138px !important;
-            padding-left: 16px !important;
-            border-left: 2px solid color-mix(in srgb, var(--mizu-accent) 48%, var(--mizu-border)) !important;
-            font-size: 1.38em !important;
-            font-weight: 800 !important;
-            line-height: 1.05 !important;
-            white-space: nowrap !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.7 — HOME proportions
-       One focused surgery: give HOME enough vertical room, make
-       narration match the choice width, and strengthen its frame.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
-            height: min(565px, calc(100dvh - 145px)) !important;
-            min-height: 470px !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
-            width: 100% !important;
-            max-width: none !important;
-            box-sizing: border-box !important;
-            border-width: 2px !important;
-            border-color: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-border)) !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.6 — HOME composition pass
-       Taller HOME, narrative-only scrolling, boxed narration,
-       and stronger choice contrast. Tracker itself does not scroll.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
-            height: min(525px, calc(100dvh - 165px)) !important;
-            min-height: 430px !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel {
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home .mizu-scene-text {
-            flex: 1 1 auto !important;
-            min-height: 130px !important;
-            max-height: none !important;
-            margin: 0 0 18px !important;
-            padding: 16px 18px !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            border: 1px solid color-mix(in srgb, var(--mizu-accent) 58%, var(--mizu-border)) !important;
-            border-radius: 11px !important;
-            background: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg)) !important;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 2px 8px rgba(0,0,0,.045) !important;
-            scrollbar-width: thin !important;
-            scrollbar-color: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-text)) transparent !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar {
-            width: 8px !important;
-        }
-        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar-track {
-            background: transparent !important;
-        }
-        #mizuhana-hud .mizu-home .mizu-scene-text::-webkit-scrollbar-thumb {
-            background: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-text)) !important;
-            border: 2px solid transparent !important;
-            border-radius: 999px !important;
-            background-clip: padding-box !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
-            overflow: hidden !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-choice {
-            background: color-mix(in srgb, var(--mizu-accent) 15%, var(--mizu-panel)) !important;
-            border: 1px solid color-mix(in srgb, var(--mizu-accent) 70%, var(--mizu-border)) !important;
-            box-shadow: 0 2px 7px rgba(0,0,0,.055) !important;
-        }
-
-        #mizuhana-hud .mizu-home .mizu-choice:hover {
-            background: color-mix(in srgb, var(--mizu-accent) 24%, var(--mizu-panel)) !important;
-            border-color: var(--mizu-accent) !important;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.5 — HOME height / overflow repair
-       One bug per surgery: remove the desktop dead zone while
-       preserving readable text, story scrolling, and fixed tracker.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar):not(.mizu-title-active) {
-            height: auto !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
-            min-height: 0 !important;
-            overflow: hidden !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-page.mizu-home {
-            height: min(445px, calc(100dvh - 190px)) !important;
-            min-height: 360px !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-scene-panel,
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
-            height: 100% !important;
-            min-height: 0 !important;
-        }
-
-        #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-home > .mizu-tracker {
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            scrollbar-width: thin;
-        }
-    `);
-
-
-    /* =========================================================
-       v0.7.2 — Destination scrollbar ghost exorcism
-       Runtime CSS: kept outside the large stylesheet template so
-       it cannot accidentally corrupt the script during updates.
-       ========================================================= */
-    GM_addStyle(`
-        /* =====================================================
-           v0.7.1 — Destination scrollbar ghost exorcism
-           The destination itself was already overflow:hidden;
-           the visible rail belonged to a scrollable ancestor.
-           ===================================================== */
-        #mizuhana-hud #mizu-main:has(.mizu-region-creator),
-        #mizuhana-hud .mizu-main:has(.mizu-region-creator),
-        #mizuhana-hud .mizu-title-screen:has(.mizu-region-creator) {
-            overflow: hidden !important;
-            scrollbar-width: none !important;
-            scrollbar-gutter: auto !important;
-        }
-
-        #mizuhana-hud #mizu-main:has(.mizu-region-creator)::-webkit-scrollbar,
-        #mizuhana-hud .mizu-main:has(.mizu-region-creator)::-webkit-scrollbar,
-        #mizuhana-hud .mizu-title-screen:has(.mizu-region-creator)::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
-            display: none !important;
-            background: transparent !important;
-        }
-
-        #mizuhana-hud .mizu-region-creator {
-            scrollbar-width: none !important;
-            scrollbar-gutter: auto !important;
-        }
-
-        #mizuhana-hud .mizu-region-creator::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
-            display: none !important;
-        }
-
-    `);
-
-
-    /* =========================================================
-       v0.7.17 — FINAL mobile destination containment override
-       IMPORTANT: intentionally last in the cascade. Earlier hotfixes
-       were being overridden by older destination rules below them.
-       ========================================================= */
-    GM_addStyle(`
-        #mizuhana-hud.mizu-layout-mobile.mizu-title-active:not(.mizu-display-bar) {
-            top: 6px !important;
-            height: min(760px, calc(100dvh - 190px)) !important;
-            max-height: calc(100dvh - 190px) !important;
-            min-height: 330px !important;
-            overflow: hidden !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile.mizu-title-active:not(.mizu-display-bar) > #mizu-main:has(.mizu-region-creator) {
-            height: calc(100% - 45px) !important;
-            min-height: 0 !important;
-            max-height: none !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            overscroll-behavior-y: contain !important;
-            -webkit-overflow-scrolling: touch !important;
-            scrollbar-width: none !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile.mizu-title-active:not(.mizu-display-bar) > #mizu-main:has(.mizu-region-creator)::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
-            display: none !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-creator {
-            position: relative !important;
-            box-sizing: border-box !important;
-            height: auto !important;
-            min-height: 100% !important;
-            max-height: none !important;
-            overflow: visible !important;
-        }
-
-        #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-backdrop {
-            position: absolute !important;
-            inset: 0 !important;
-            min-height: 100% !important;
-            overflow: hidden !important;
-            pointer-events: none !important;
-        }
-    `);
 
 })();
