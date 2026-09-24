@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.18
+// @version      0.7.19
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -5567,6 +5567,121 @@ Rules:
        LAUNCHER
        ========================================================= */
 
+    // This is interface state only; gameplay and the chosen display mode persist independently.
+    let hudExpanded = true;
+    const HUD_REGISTRY = [{ id: 'mizuhana', icon: '🌺', name: 'Mizuhana' }];
+    let activeHudId = HUD_REGISTRY[0].id;
+
+    function makeHudPill() {
+        if (document.querySelector('#mizu-hud-switcher')) return;
+        const wrapper = document.createElement('div');
+        wrapper.id = 'mizu-hud-switcher';
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.id = 'mizu-hud-pill';
+        pill.setAttribute('aria-haspopup', 'menu');
+        const menu = document.createElement('div');
+        menu.id = 'mizu-hud-menu';
+        menu.setAttribute('role', 'menu');
+        menu.hidden = true;
+        const update = () => {
+            const selected = HUD_REGISTRY.find(item => item.id === activeHudId) || HUD_REGISTRY[0];
+            pill.textContent = `${selected.icon} ${selected.name}`;
+            menu.replaceChildren(...HUD_REGISTRY.map(item => {
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.setAttribute('role', 'menuitem');
+                option.textContent = `${item.icon} ${item.name}`;
+                option.addEventListener('click', () => {
+                    activeHudId = item.id;
+                    menu.hidden = true;
+                    pill.setAttribute('aria-expanded', 'false');
+                    update();
+                    pill.focus();
+                });
+                return option;
+            }));
+        };
+        update();
+        pill.setAttribute('aria-expanded', 'false');
+        const showMenu = () => {
+            menu.hidden = false;
+            pill.setAttribute('aria-expanded', 'true');
+        };
+        let holdTimer;
+        let startX = 0;
+        let startY = 0;
+        let gesture = false;
+        let suppressClick = false;
+        pill.addEventListener('pointerdown', event => {
+            if (event.button !== 0) return;
+            startX = event.clientX;
+            startY = event.clientY;
+            gesture = false;
+            clearTimeout(holdTimer);
+            holdTimer = setTimeout(() => {
+                gesture = true;
+                suppressClick = true;
+                showMenu();
+            }, 480);
+        });
+        pill.addEventListener('pointermove', event => {
+            if (!holdTimer) return;
+            if (Math.abs(event.clientX - startX) > 18 || Math.abs(event.clientY - startY) > 18) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+                gesture = true;
+            }
+        });
+        pill.addEventListener('pointerup', event => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            const dx = event.clientX - startX;
+            const dy = event.clientY - startY;
+            if (gesture && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                const index = HUD_REGISTRY.findIndex(item => item.id === activeHudId);
+                activeHudId = HUD_REGISTRY[(index + (dx < 0 ? 1 : -1) + HUD_REGISTRY.length) % HUD_REGISTRY.length].id;
+                update();
+            }
+            if (gesture) suppressClick = true;
+        });
+        pill.addEventListener('pointercancel', () => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+        });
+        pill.addEventListener('click', event => {
+            if (suppressClick) {
+                event.preventDefault();
+                suppressClick = false;
+                return;
+            }
+            if (!menu.hidden) {
+                menu.hidden = true;
+                pill.setAttribute('aria-expanded', 'false');
+                return;
+            }
+            hudExpanded = true;
+            renderHUD();
+        });
+        pill.addEventListener('contextmenu', event => {
+            event.preventDefault();
+            showMenu();
+        });
+        pill.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                showMenu();
+                menu.querySelector('button')?.focus();
+            }
+            if (event.key === 'Escape') {
+                menu.hidden = true;
+                pill.setAttribute('aria-expanded', 'false');
+            }
+        });
+        wrapper.append(pill, menu);
+        document.body.appendChild(wrapper);
+    }
+
     function makeLauncher() {
 
         if (document.querySelector('#mizuhana-launcher')) {
@@ -5588,7 +5703,7 @@ Rules:
             'mizuhana-launcher';
 
         button.textContent =
-            '🌺 Mizuhana HUD';
+            '🌺 Mizuhana';
 
         button.title =
             'Enable Mizuhana HUD for this conversation';
@@ -5607,6 +5722,7 @@ Rules:
 
             button.remove();
 
+            hudExpanded = true;
             renderHUD();
         });
 
@@ -6065,9 +6181,10 @@ Rules:
         return `
             <div class="mizu-nav">
 
-                <div class="mizu-brand">
+                <button class="mizu-brand" id="mizu-brand-collapse" type="button"
+                    title="Collapse Mizuhana" aria-label="Collapse Mizuhana">
                     🌺 MIZUHANA
-                </div>
+                </button>
 
                 ${pages.map(([id, label]) => `
                     <button
@@ -6713,8 +6830,15 @@ Rules:
             .querySelector('#mizuhana-launcher')
             ?.remove();
 
+        document.querySelector('#mizu-hud-switcher')?.remove();
+
         if (!isEnabledHere()) {
             makeLauncher();
+            return;
+        }
+
+        if (!hudExpanded) {
+            makeHudPill();
             return;
         }
 
@@ -6795,6 +6919,11 @@ Rules:
        ========================================================= */
 
     function attachListeners(hud) {
+
+        hud.querySelector('#mizu-brand-collapse')?.addEventListener('click', () => {
+            hudExpanded = false;
+            renderHUD();
+        });
 
         /* ---------- v0.5 TITLE SCREEN ---------- */
 
@@ -7362,9 +7491,8 @@ Rules:
 
             if (
                 isEnabledHere() &&
-                !document.querySelector(
-                    '#mizuhana-hud'
-                )
+                !document.querySelector('#mizuhana-hud') &&
+                !document.querySelector('#mizu-hud-switcher')
             ) {
                 renderHUD();
             }
@@ -7388,6 +7516,8 @@ Rules:
         document
             .querySelector('#mizuhana-launcher')
             ?.remove();
+
+        document.querySelector('#mizu-hud-switcher')?.remove();
 
         state =
             loadState();
@@ -7421,14 +7551,15 @@ Rules:
 
         const hud = document.querySelector('#mizuhana-hud');
         const launcher = document.querySelector('#mizuhana-launcher');
+        const pill = document.querySelector('#mizu-hud-switcher');
 
         if (isEnabledHere()) {
-            if (!hud) {
+            if (!hud && !pill) {
                 launcher?.remove();
                 renderHUD();
             }
         }
-        else if (!launcher && !hud) {
+        else if (!launcher && !hud && !pill) {
             makeLauncher();
         }
     }, 1500);
@@ -7441,6 +7572,68 @@ Rules:
        the v0.7.2–v0.7.17 emergency override stack.
        ========================================================= */
     GM_addStyle(`
+        /* v0.7.19: the switcher lives above the chat, away from the composer. */
+        #mizuhana-launcher,
+        #mizu-hud-switcher {
+            position: fixed !important;
+            top: max(8px, env(safe-area-inset-top, 0px)) !important;
+            bottom: auto !important;
+            left: 50% !important;
+            right: auto !important;
+            transform: translateX(-50%) !important;
+            z-index: 2147483647 !important;
+        }
+        #mizu-hud-switcher { font-family: system-ui, sans-serif; }
+        #mizu-hud-pill,
+        #mizu-hud-menu button {
+            border: 1px solid rgba(128,128,128,.35);
+            border-radius: 999px;
+            background: white;
+            color: #222;
+            padding: 10px 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,.16);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #mizu-hud-pill { touch-action: pan-y; }
+        #mizu-hud-menu:not([hidden]) {
+            display: grid;
+            gap: 5px;
+            margin-top: 6px;
+            padding: 6px;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 6px 22px rgba(0,0,0,.2);
+        }
+        #mizu-hud-menu[hidden] { display: none !important; }
+        html.dark #mizu-hud-pill,
+        html.dark #mizu-hud-menu,
+        html.dark #mizu-hud-menu button {
+            background: #262626;
+            color: #f5f5f5;
+        }
+        #mizuhana-hud .mizu-brand {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            font-weight: 850;
+            letter-spacing: .02em;
+            cursor: pointer;
+        }
+        #mizuhana-hud .mizu-brand:hover { color: var(--mizu-accent); }
+        @media (max-width: 649px) {
+            #mizuhana-launcher {
+                top: max(8px, env(safe-area-inset-top, 0px)) !important;
+                bottom: auto !important;
+                left: 50% !important;
+                right: auto !important;
+                transform: translateX(-50%) !important;
+            }
+        }
         /* ---------- Shared play shell ---------- */
         #mizuhana-hud:not(.mizu-display-bar):not(.mizu-title-active) {
             height: var(--mizu-play-height, calc(100dvh - 105px)) !important;
