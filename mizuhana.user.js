@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.15
+// @version      0.7.16
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7433,6 +7433,55 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.16 — MOBILE destination containment repair
+       Keep the proven HOME-sized mobile shell. Destination scrolls
+       inside #mizu-main; no fixed child may escape the HUD.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) {
+            height: min(760px, calc(100dvh - 190px)) !important;
+            max-height: calc(100dvh - 190px) !important;
+            min-height: 330px !important;
+            overflow: hidden !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) > #mizu-main {
+            height: auto !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):has(.mizu-region-creator) > #mizu-main {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            overscroll-behavior-y: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile .mizu-region-creator {
+            position: relative !important;
+            height: auto !important;
+            min-height: 100% !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop {
+            position: absolute !important;
+            inset: 0 !important;
+            min-height: 100% !important;
+            pointer-events: none !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop-image,
+        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop-mist {
+            position: absolute !important;
+        }
+    `);
 
 
     /* =========================================================
