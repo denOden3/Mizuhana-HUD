@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.21
+// @version      0.7.22
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -67,8 +67,9 @@
         // auto | desktop | compact | mobile
         layoutPreference: 'auto',
 
-        // normal | large
+        // small | normal | large
         textSize: 'normal',
+        advancedOpen: false,
 
         // island-light | island-night | sakura | forest | midnight | follow-chatgpt
         hudTheme: 'isanami',
@@ -237,6 +238,9 @@
             ...saved,
 
             hudTheme: availableThemes.includes(hudTheme) ? hudTheme : DEFAULT_STATE.hudTheme,
+            textSize: ['small', 'normal', 'large'].includes(saved.textSize) ? saved.textSize : 'normal',
+            layoutPreference: ['auto', 'desktop', 'compact', 'mobile'].includes(saved.layoutPreference)
+                ? saved.layoutPreference : 'auto',
 
             // v0.6.15 retires Full HUD; old Full preferences migrate to Compact.
             displayMode: saved.displayMode === 'bar' ? 'bar' : 'compact',
@@ -358,6 +362,27 @@
         state.activePage = 'home';
 
         saveState();
+        return true;
+    }
+
+    function saveToSlot(id) {
+        if (state.titleScreen) return false;
+
+        const slot = state.saveSlots.find(item => item.id === id);
+        if (slot && !confirm(`Overwrite ${slot.name || 'this save'}? The previous progress in this slot will be replaced.`)) {
+            return false;
+        }
+
+        // Preserve the life we are leaving before switching the active slot.
+        syncActiveSave();
+        const destination = slot || {
+            id: makeSaveId(),
+            createdAt: Date.now()
+        };
+        if (!slot) state.saveSlots.push(destination);
+        state.activeSaveId = destination.id;
+        syncActiveSave();
+        GM_setValue(STORAGE_KEY, state);
         return true;
     }
 
@@ -964,18 +989,19 @@ Rules:
             --mizu-panel: #34282c;
             --mizu-text: #f9eee3;
             --mizu-muted: #dec9c1;
-            --mizu-border: #a07478;
-            --mizu-frame: #be8986;
-            --mizu-accent: #e9aaa9;
+            --mizu-border: #a96669;
+            --mizu-frame: #c77977;
+            --mizu-accent: #dd7774;
             --mizu-secondary: #dfbd81;
-            --mizu-soft-border: #905c66;
-            --mizu-hover: rgba(233, 170, 169, .13);
+            --mizu-soft-border: #905656;
+            --mizu-hover: rgba(221, 119, 116, .13);
             --mizu-focus: #efd093;
-            --mizu-story-line: #bd7580;
-            --mizu-soft: rgba(233, 170, 169, .10);
-            --mizu-soft-strong: rgba(233, 170, 169, .20);
+            --mizu-story-line: #be6968;
+            --mizu-soft: rgba(221, 119, 116, .10);
+            --mizu-soft-strong: rgba(221, 119, 116, .20);
         }
 
+        #mizuhana-hud.mizu-text-small { font-size: 12px; }
         #mizuhana-hud.mizu-text-large {
             font-size: 16px;
         }
@@ -6085,46 +6111,42 @@ Rules:
         `;
     }
 
-    function loadSavesHTML() {
-        const slots = [...(state.saveSlots || [])]
-            .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    function loadSavesHTML(fromSettings = false) {
+        const slots = [...(state.saveSlots || [])];
+        const visibleSlots = Math.max(5, slots.length);
 
         return `
-            <div class="mizu-title-screen">
+            <div class="${fromSettings ? 'mizu-page mizu-settings' : 'mizu-title-screen'} mizu-save-manager">
 
-                <div class="mizu-title-name">
-                    LOAD SAVES
-                </div>
+                <div class="mizu-label">Load / Save</div>
 
                 <div class="mizu-save-panel">
-                    ${slots.map(slot => `
-                        <div class="mizu-save-card">
+                    ${Array.from({ length: visibleSlots }, (_, index) => {
+                        const slot = slots[index];
+                        return `
+                        <div class="mizu-save-card ${slot ? '' : 'mizu-save-empty'}">
                             <div>
                                 <div class="mizu-save-name">
-                                    ${escapeHTML(slot.name || 'Unnamed Life')}
-                                    ${slot.id === state.activeSaveId ? ' · Current' : ''}
+                                    Slot ${index + 1} · ${slot ? escapeHTML(slot.name || 'Unnamed Life') : 'Empty'}
+                                    ${slot?.id === state.activeSaveId ? ' · Current' : ''}
                                 </div>
-                                <div class="mizu-save-meta">
-                                    ${escapeHTML(
-                                        `${slot.data?.day || ''} · ${slot.data?.season || ''} ${slot.data?.date || ''} · ${slot.data?.time || ''}`
-                                    )}
-                                    <br>
-                                    Last played ${escapeHTML(formatSaveTime(slot.updatedAt))}
-                                </div>
+                                ${slot ? `<div class="mizu-save-meta">
+                                    ${escapeHTML(`${slot.data?.day || 'Day unknown'} · ${slot.data?.season || ''} ${slot.data?.date || ''} · ${slot.data?.time || 'Time unknown'}`)}<br>
+                                    ${escapeHTML(slot.data?.location || slot.data?.sceneTitle || 'Location unknown')} · Last played ${escapeHTML(formatSaveTime(slot.updatedAt))}
+                                </div>` : '<div class="mizu-save-meta">No character saved here</div>'}
                             </div>
 
-                            <button
-                                class="mizu-button mizu-load-slot"
-                                data-save-id="${escapeHTML(slot.id)}">
-                                Load
-                            </button>
+                            <div class="mizu-save-actions">
+                                ${slot ? `<button class="mizu-button mizu-load-slot" data-save-id="${escapeHTML(slot.id)}">Load</button>` : ''}
+                                ${fromSettings ? `<button class="mizu-button mizu-save-slot" ${slot ? `data-save-id="${escapeHTML(slot.id)}"` : ''} aria-label="Save to slot ${index + 1}${slot ? `, overwrite ${escapeHTML(slot.name || 'saved life')}` : ', empty'}">Save</button>` : ''}
+                            </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
 
                 <button
                     class="mizu-button mizu-title-back"
-                    id="mizu-title-back">
+                    id="${fromSettings ? 'mizu-save-back' : 'mizu-title-back'}">
                     ← Back
                 </button>
 
@@ -6653,10 +6675,6 @@ Rules:
         return `
             <div class="mizu-page mizu-settings">
 
-                <div class="mizu-section-title">
-                    ⚙️ HUD Settings
-                </div>
-
                 ${state.titleScreen ? `
                     <button class="mizu-button mizu-title-back" id="mizu-settings-back">
                         ← Back
@@ -6682,75 +6700,7 @@ Rules:
                 </div>
 
 
-                <div class="mizu-setting-group">
-
-                    <div class="mizu-label">
-                        Layout
-                    </div>
-
-                    <div class="mizu-setting-options">
-
-                        ${settingButton(
-                            'layout',
-                            'auto',
-                            'Automatic',
-                            state.layoutPreference
-                        )}
-
-                        ${settingButton(
-                            'layout',
-                            'desktop',
-                            'Desktop',
-                            state.layoutPreference
-                        )}
-
-                        ${settingButton(
-                            'layout',
-                            'compact',
-                            'Compact',
-                            state.layoutPreference
-                        )}
-
-                        ${settingButton(
-                            'layout',
-                            'mobile',
-                            'Mobile',
-                            state.layoutPreference
-                        )}
-
-                    </div>
-
-                </div>
-
-
-                <div class="mizu-setting-group">
-
-                    <div class="mizu-label">
-                        Text Size
-                    </div>
-
-                    <div class="mizu-setting-options">
-
-                        ${settingButton(
-                            'text',
-                            'normal',
-                            'Normal',
-                            state.textSize
-                        )}
-
-                        ${settingButton(
-                            'text',
-                            'large',
-                            'Large',
-                            state.textSize
-                        )}
-
-                    </div>
-
-                </div>
-
-
-                <div class="mizu-setting-group">
+                <div class="mizu-setting-group mizu-game-settings">
 
                     <div class="mizu-label">
                         Game
@@ -6762,6 +6712,9 @@ Rules:
                             id="mizu-return-title">
                             🌺 Return to Title Screen
                         </button>
+                        <button class="mizu-setting-option" id="mizu-open-saves">
+                            💾 Load / Save
+                        </button>
                     </div>
 
                     <div class="mizu-muted" style="margin-top:7px; max-width:700px;">
@@ -6772,30 +6725,24 @@ Rules:
 
 
                 <div class="mizu-setting-group">
-
-                    <div class="mizu-label">
-                        Display
-                    </div>
-
+                    <div class="mizu-label">Text Size</div>
                     <div class="mizu-setting-options">
-
-                        ${settingButton(
-                            'display',
-                            'compact',
-                            'Compact HUD',
-                            state.displayMode
-                        )}
-
-                        ${settingButton(
-                            'display',
-                            'bar',
-                            'Bar Only',
-                            state.displayMode
-                        )}
-
+                        ${settingButton('text', 'small', 'Small', state.textSize)}
+                        ${settingButton('text', 'normal', 'Normal', state.textSize)}
+                        ${settingButton('text', 'large', 'Large', state.textSize)}
                     </div>
-
                 </div>
+
+                <details class="mizu-setting-group mizu-advanced" ${state.advancedOpen ? 'open' : ''}>
+                    <summary class="mizu-label">Advanced</summary>
+                    <div class="mizu-label">Layout</div>
+                    <div class="mizu-setting-options">
+                        ${settingButton('layout', 'auto', 'Automatic', state.layoutPreference)}
+                        ${settingButton('layout', 'desktop', 'Desktop', state.layoutPreference)}
+                        ${settingButton('layout', 'compact', 'Compact', state.layoutPreference)}
+                        ${settingButton('layout', 'mobile', 'Mobile', state.layoutPreference)}
+                    </div>
+                </details>
 
             </div>
         `;
@@ -6817,7 +6764,7 @@ Rules:
                 "
                 data-setting-type="${type}"
                 data-setting-value="${value}"
-                ${type === 'theme' ? `aria-pressed="${value === current}"` : ''}>
+                aria-pressed="${value === current}">
 
                 ${escapeHTML(label)}
 
@@ -6914,6 +6861,9 @@ Rules:
                 'mizu-text-large'
             );
         }
+        if (state.textSize === 'small') {
+            hud.classList.add('mizu-text-small');
+        }
 
         hud.innerHTML = state.titleScreen
             ? `
@@ -6946,6 +6896,10 @@ Rules:
 
         if (state.activePage === 'home') {
             return homeHTML();
+        }
+
+        if (state.activePage === 'saves') {
+            return loadSavesHTML(true);
         }
 
         if (state.activePage === 'map') {
@@ -6993,6 +6947,7 @@ Rules:
         hud
             .querySelector('#mizu-load-saves')
             ?.addEventListener('click', () => {
+                state.saveReturnTitleMode = 'menu';
                 state.titleMode = 'loads';
                 GM_setValue(STORAGE_KEY, state);
                 renderHUD();
@@ -7054,7 +7009,9 @@ Rules:
         hud
             .querySelector('#mizu-title-back')
             ?.addEventListener('click', () => {
-                state.titleMode = 'menu';
+                state.titleMode = state.titleMode === 'loads'
+                    ? (state.saveReturnTitleMode || 'menu') : 'menu';
+                state.saveReturnTitleMode = 'menu';
                 GM_setValue(STORAGE_KEY, state);
                 renderHUD();
             });
@@ -7068,6 +7025,18 @@ Rules:
                     }
                 });
             });
+
+        hud.querySelectorAll('.mizu-save-slot').forEach(button => {
+            button.addEventListener('click', () => {
+                if (saveToSlot(button.dataset.saveId)) renderHUD();
+            });
+        });
+
+        hud.querySelector('#mizu-save-back')?.addEventListener('click', () => {
+            state.activePage = 'settings';
+            saveState();
+            renderHUD();
+        });
 
         /* ---------- PAGE TABS ---------- */
 
@@ -7119,6 +7088,22 @@ Rules:
                 saveState();
                 renderHUD();
             });
+
+        hud.querySelector('#mizu-open-saves')?.addEventListener('click', () => {
+            if (state.titleScreen) {
+                state.saveReturnTitleMode = 'settings';
+                state.titleMode = 'loads';
+            } else {
+                state.activePage = 'saves';
+            }
+            saveState();
+            renderHUD();
+        });
+
+        hud.querySelector('.mizu-advanced')?.addEventListener('toggle', event => {
+            state.advancedOpen = event.target.open;
+            GM_setValue(STORAGE_KEY, state);
+        });
 
 
 
@@ -7931,6 +7916,79 @@ Rules:
             overflow: visible !important;
             scrollbar-width: none !important;
             scrollbar-gutter: auto !important;
+        }
+
+        /* The manager and Settings scroll inside the established HUD height. */
+        #mizuhana-hud.mizu-title-active .mizu-title-screen.mizu-save-manager {
+            overflow-y: auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 10px !important;
+            padding: 16px !important;
+            box-sizing: border-box;
+            overscroll-behavior: contain;
+        }
+        #mizuhana-hud .mizu-save-manager.mizu-page {
+            max-height: none;
+            padding-bottom: 24px;
+        }
+        #mizuhana-hud > #mizu-main:has(> .mizu-settings) {
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+        }
+        #mizuhana-hud #mizu-main > .mizu-settings {
+            max-height: none;
+        }
+        #mizuhana-hud .mizu-save-manager .mizu-save-panel {
+            flex: 0 0 auto;
+        }
+        #mizuhana-hud .mizu-save-card {
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+        #mizuhana-hud .mizu-save-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        #mizuhana-hud .mizu-save-empty {
+            border-style: dashed;
+        }
+        #mizuhana-hud .mizu-game-settings .mizu-setting-options {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        #mizuhana-hud .mizu-advanced {
+            border-top: 1px solid var(--mizu-soft-border);
+            padding-top: 10px;
+        }
+        #mizuhana-hud .mizu-advanced summary {
+            cursor: pointer;
+            width: fit-content;
+            padding: 6px 3px;
+        }
+        #mizuhana-hud .mizu-advanced summary:focus-visible {
+            outline: 2px solid var(--mizu-focus);
+            outline-offset: 2px;
+        }
+        #mizuhana-hud .mizu-advanced > .mizu-label {
+            margin-top: 8px;
+        }
+        #mizuhana-hud.mizu-layout-mobile .mizu-settings {
+            padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+        }
+        #mizuhana-hud.mizu-layout-mobile .mizu-setting-option,
+        #mizuhana-hud.mizu-layout-mobile .mizu-save-actions .mizu-button {
+            min-height: 40px;
+        }
+        #mizuhana-hud.mizu-theme-mizuhana .mizu-title-button:is(:hover, :focus-visible) {
+            color: var(--mizu-bg);
+        }
+        @media (max-width: 440px) {
+            #mizuhana-hud .mizu-save-card {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
 
         #mizuhana-hud.mizu-layout-mobile.mizu-title-active .mizu-region-creator::-webkit-scrollbar {
