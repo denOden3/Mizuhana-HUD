@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.13
+// @version      0.7.14
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -6763,6 +6763,8 @@ Rules:
 
         document.body.appendChild(hud);
 
+        installMobileNarrativeScrollHandoff(hud);
+
         attachListeners(hud);
         updateMobileComposerSafeZone(hud);
     }
@@ -7431,6 +7433,73 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.14 — MOBILE story-first handoff
+       Keep choices below the fold and let an upward swipe at the
+       bottom of narration continue into the outer HOME scroller.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) > #mizu-main {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            overscroll-behavior-y: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) .mizu-home {
+            min-height: max-content !important;
+            overflow: visible !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) .mizu-home .mizu-scene-panel {
+            overflow: visible !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) .mizu-home .mizu-scene-text {
+            height: min(60dvh, 500px) !important;
+            max-height: min(60dvh, 500px) !important;
+            min-height: 360px !important;
+            overscroll-behavior-y: auto !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar) .mizu-home .mizu-question {
+            margin-bottom: 14px !important;
+        }
+    `);
+
+    function installMobileNarrativeScrollHandoff(hud) {
+        if (!hud?.classList.contains('mizu-layout-mobile')) return;
+
+        const story = hud.querySelector('.mizu-home .mizu-scene-text');
+        const main = hud.querySelector('#mizu-main');
+        if (!story || !main) return;
+
+        let startY = null;
+
+        story.addEventListener('touchstart', (event) => {
+            startY = event.touches?.[0]?.clientY ?? null;
+        }, { passive: true });
+
+        story.addEventListener('touchmove', (event) => {
+            if (startY === null) return;
+            const currentY = event.touches?.[0]?.clientY;
+            if (currentY == null) return;
+
+            const delta = startY - currentY;
+            const atBottom = story.scrollTop + story.clientHeight >= story.scrollHeight - 2;
+
+            if (atBottom && delta > 0) {
+                main.scrollTop += delta;
+                startY = currentY;
+            }
+        }, { passive: true });
+
+        story.addEventListener('touchend', () => {
+            startY = null;
+        }, { passive: true });
+    }
 
 
     /* =========================================================
