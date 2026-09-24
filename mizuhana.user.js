@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.20
+// @version      0.7.21
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -71,7 +71,7 @@
         textSize: 'normal',
 
         // island-light | island-night | sakura | forest | midnight | follow-chatgpt
-        hudTheme: 'island-light',
+        hudTheme: 'isanami',
 
         activePage: 'home',
 
@@ -220,9 +220,23 @@
     function loadState() {
         const saved = GM_getValue(STORAGE_KEY, {});
 
+        // Keep existing players' theme choices when upgrading the palette names.
+        const legacyThemes = {
+            'island-light': 'isanami',
+            'island-night': 'nagihama',
+            sakura: 'hanaharumi',
+            forest: 'moriyama',
+            midnight: 'nagihama',
+            'follow-chatgpt': 'nagihama'
+        };
+        const hudTheme = legacyThemes[saved.hudTheme] || saved.hudTheme;
+        const availableThemes = ['nagihama', 'isanami', 'moriyama', 'hanaharumi', 'mizuhana'];
+
         return {
             ...DEFAULT_STATE,
             ...saved,
+
+            hudTheme: availableThemes.includes(hudTheme) ? hudTheme : DEFAULT_STATE.hudTheme,
 
             // v0.6.15 retires Full HUD; old Full preferences migrate to Compact.
             displayMode: saved.displayMode === 'bar' ? 'bar' : 'compact',
@@ -826,15 +840,20 @@ Rules:
         }
 
         #mizuhana-hud {
-            --mizu-bg: #f8f3e8;
-            --mizu-panel: #fffaf0;
-            --mizu-text: #182b35;
-            --mizu-muted: #445963;
-            --mizu-border: #78919a;
-            --mizu-frame: #496d79;
-            --mizu-accent: #2f6576;
-            --mizu-soft: rgba(47, 101, 118, 0.10);
-            --mizu-soft-strong: rgba(47, 101, 118, 0.18);
+            --mizu-bg: #e9f2ed;
+            --mizu-panel: #fff8e9;
+            --mizu-text: #173740;
+            --mizu-muted: #385961;
+            --mizu-border: #4b8589;
+            --mizu-frame: #286672;
+            --mizu-accent: #006678;
+            --mizu-secondary: #a34d3e;
+            --mizu-soft-border: #b6d0c9;
+            --mizu-hover: rgba(0, 102, 120, .10);
+            --mizu-focus: #a34d3e;
+            --mizu-story-line: #a34d3e;
+            --mizu-soft: rgba(0, 102, 120, .10);
+            --mizu-soft-strong: rgba(0, 102, 120, .19);
 
             position: fixed;
             z-index: 99990;
@@ -870,90 +889,91 @@ Rules:
             line-height: 1.45;
         }
 
-        /* ---------- INDEPENDENT HUD THEMES ---------- */
+        /* ---------- MIZUHANA REGION PALETTES ---------- */
 
-        #mizuhana-hud.mizu-theme-island-light {
-            --mizu-bg: #f8f3e8;
-            --mizu-panel: #fffaf0;
-            --mizu-text: #182b35;
-            --mizu-muted: #445963;
-            --mizu-border: #78919a;
-            --mizu-frame: #496d79;
-            --mizu-accent: #2f6576;
-            --mizu-soft: rgba(47, 101, 118, 0.10);
-            --mizu-soft-strong: rgba(47, 101, 118, 0.18);
+        #mizuhana-hud.mizu-theme-nagihama {
+            --mizu-bg: #252a2e;
+            --mizu-panel: #343a3e;
+            --mizu-text: #f7f2e8;
+            --mizu-muted: #d0d9da;
+            --mizu-border: #829096;
+            --mizu-frame: #adb9bb;
+            --mizu-accent: #a8ccd8;
+            --mizu-secondary: #d7c9ac;
+            --mizu-soft-border: #7c8d93;
+            --mizu-hover: rgba(168, 204, 216, .13);
+            --mizu-focus: #e5c58b;
+            --mizu-story-line: #839aa3;
+            --mizu-soft: rgba(168, 204, 216, .10);
+            --mizu-soft-strong: rgba(168, 204, 216, .20);
         }
 
-        #mizuhana-hud.mizu-theme-island-night {
-            --mizu-bg: #14232f;
-            --mizu-panel: #1b2e3c;
-            --mizu-text: #f7f1e5;
-            --mizu-muted: #c8d3d8;
-            --mizu-border: #7894a2;
-            --mizu-frame: #9ab2bd;
-            --mizu-accent: #a9d7e7;
-            --mizu-soft: rgba(255,255,255,.08);
-            --mizu-soft-strong: rgba(255,255,255,.15);
+        #mizuhana-hud.mizu-theme-isanami {
+            --mizu-bg: #e9f2ed;
+            --mizu-panel: #fff8e9;
+            --mizu-text: #173740;
+            --mizu-muted: #385961;
+            --mizu-border: #4b8589;
+            --mizu-frame: #286672;
+            --mizu-accent: #006678;
+            --mizu-secondary: #a34d3e;
+            --mizu-soft-border: #b6d0c9;
+            --mizu-hover: rgba(0, 102, 120, .10);
+            --mizu-focus: #a34d3e;
+            --mizu-story-line: #b16a58;
+            --mizu-soft: rgba(0, 102, 120, .10);
+            --mizu-soft-strong: rgba(0, 102, 120, .19);
         }
 
-        #mizuhana-hud.mizu-theme-sakura {
-            --mizu-bg: #fff4f3;
-            --mizu-panel: #fffaf7;
-            --mizu-text: #3b2029;
-            --mizu-muted: #68434e;
-            --mizu-border: #b97f8e;
-            --mizu-frame: #8f5365;
-            --mizu-accent: #8f405b;
-            --mizu-soft: rgba(143, 64, 91, .09);
-            --mizu-soft-strong: rgba(143, 64, 91, .17);
+        #mizuhana-hud.mizu-theme-moriyama {
+            --mizu-bg: #e8ede2;
+            --mizu-panel: #fff8e9;
+            --mizu-text: #263a2d;
+            --mizu-muted: #4a6050;
+            --mizu-border: #67836f;
+            --mizu-frame: #3b614d;
+            --mizu-accent: #32684e;
+            --mizu-secondary: #975239;
+            --mizu-soft-border: #b4c7ae;
+            --mizu-hover: rgba(50, 104, 78, .10);
+            --mizu-focus: #975239;
+            --mizu-story-line: #987254;
+            --mizu-soft: rgba(50, 104, 78, .10);
+            --mizu-soft-strong: rgba(50, 104, 78, .19);
         }
 
-        #mizuhana-hud.mizu-theme-forest {
-            --mizu-bg: #f1f3e7;
-            --mizu-panel: #faf9ef;
-            --mizu-text: #203126;
-            --mizu-muted: #4c6253;
-            --mizu-border: #7d947e;
-            --mizu-frame: #536f59;
-            --mizu-accent: #3f6b4b;
-            --mizu-soft: rgba(63, 107, 75, .09);
-            --mizu-soft-strong: rgba(63, 107, 75, .17);
+        #mizuhana-hud.mizu-theme-hanaharumi {
+            --mizu-bg: #fff0e6;
+            --mizu-panel: #fff9ed;
+            --mizu-text: #302842;
+            --mizu-muted: #59465a;
+            --mizu-border: #a46b78;
+            --mizu-frame: #704258;
+            --mizu-accent: #9c2e51;
+            --mizu-secondary: #98600d;
+            --mizu-soft-border: #dfb5aa;
+            --mizu-hover: rgba(156, 46, 81, .10);
+            --mizu-focus: #704258;
+            --mizu-story-line: #bd7b24;
+            --mizu-soft: rgba(156, 46, 81, .10);
+            --mizu-soft-strong: rgba(156, 46, 81, .18);
         }
 
-        #mizuhana-hud.mizu-theme-midnight {
-            --mizu-bg: #11131b;
-            --mizu-panel: #191c27;
-            --mizu-text: #f5f3ed;
-            --mizu-muted: #c2c3ce;
-            --mizu-border: #6f7488;
-            --mizu-frame: #9298ad;
-            --mizu-accent: #c0c6e8;
-            --mizu-soft: rgba(255,255,255,.07);
-            --mizu-soft-strong: rgba(255,255,255,.14);
-        }
-
-        #mizuhana-hud.mizu-theme-follow-chatgpt {
-            --mizu-bg: #fafafa;
-            --mizu-panel: #ffffff;
-            --mizu-text: #202020;
-            --mizu-muted: #555555;
-            --mizu-border: #777777;
-            --mizu-frame: #555555;
-            --mizu-accent: #333333;
-            --mizu-soft: rgba(0,0,0,.06);
-            --mizu-soft-strong: rgba(0,0,0,.12);
-        }
-
-        html.dark #mizuhana-hud.mizu-theme-follow-chatgpt {
-            --mizu-bg: #202020;
-            --mizu-panel: #292929;
-            --mizu-text: #f4f4f4;
-            --mizu-muted: #c4c4c4;
-            --mizu-border: #858585;
-            --mizu-frame: #aaaaaa;
-            --mizu-accent: #eeeeee;
-            --mizu-soft: rgba(255,255,255,.07);
-            --mizu-soft-strong: rgba(255,255,255,.13);
+        #mizuhana-hud.mizu-theme-mizuhana {
+            --mizu-bg: #241e22;
+            --mizu-panel: #34282c;
+            --mizu-text: #f9eee3;
+            --mizu-muted: #dec9c1;
+            --mizu-border: #a07478;
+            --mizu-frame: #be8986;
+            --mizu-accent: #e9aaa9;
+            --mizu-secondary: #dfbd81;
+            --mizu-soft-border: #905c66;
+            --mizu-hover: rgba(233, 170, 169, .13);
+            --mizu-focus: #efd093;
+            --mizu-story-line: #bd7580;
+            --mizu-soft: rgba(233, 170, 169, .10);
+            --mizu-soft-strong: rgba(233, 170, 169, .20);
         }
 
         #mizuhana-hud.mizu-text-large {
@@ -5450,22 +5470,23 @@ Rules:
             margin-top: 10px;
         }
 
-        /* LOCATION — intentionally not boxed. */
+        /* Location and Current Look share a quiet, full-row interaction. */
         #mizuhana-hud .mizu-tracker-location {
             display: block;
             width: 100%;
             box-sizing: border-box;
             margin: 12px 0 0;
-            padding: 12px 1px 13px;
+            padding: 12px 11px 13px;
             border: 0;
-            border-top: 1px solid color-mix(in srgb, var(--mizu-border) 55%, transparent);
-            border-bottom: 1px solid color-mix(in srgb, var(--mizu-border) 55%, transparent);
-            border-radius: 0;
+            border-top: 1px solid var(--mizu-soft-border);
+            border-bottom: 1px solid var(--mizu-soft-border);
+            border-radius: 9px;
             background: transparent;
             color: var(--mizu-text);
             font: inherit;
             text-align: left;
             cursor: pointer;
+            transition: background-color .16s ease;
         }
 
         #mizuhana-hud .mizu-tracker-section-label,
@@ -5483,42 +5504,69 @@ Rules:
             font-weight: 760;
         }
 
-        #mizuhana-hud .mizu-tracker-location:hover .mizu-tracker-location-text {
-            color: var(--mizu-accent);
-            text-decoration: underline;
-            text-underline-offset: 3px;
-        }
-
-        /* CURRENT LOOK — same visual family as Location, clickable but unboxed. */
+        /* Current Look retains its existing whole-panel button. */
         #mizuhana-hud .mizu-home .mizu-outfit {
             width: 100%;
             margin: 0;
-            padding: 13px 1px;
+            padding: 13px 11px;
             border: 0;
-            border-bottom: 1px solid color-mix(in srgb, var(--mizu-border) 55%, transparent);
-            border-radius: 0;
+            border-bottom: 1px solid var(--mizu-soft-border);
+            border-radius: 9px;
             background: transparent;
             color: var(--mizu-text);
             text-align: left;
+            cursor: pointer;
+            transition: background-color .16s ease;
         }
 
+        #mizuhana-hud .mizu-tracker-location:hover,
         #mizuhana-hud .mizu-home .mizu-outfit:hover {
-            background: color-mix(in srgb, var(--mizu-accent) 7%, transparent);
+            background: var(--mizu-hover);
+        }
+
+        #mizuhana-hud .mizu-tracker-location:focus-visible,
+        #mizuhana-hud .mizu-home .mizu-outfit:focus-visible {
+            background: var(--mizu-hover);
+            outline: 2px solid var(--mizu-focus);
+            outline-offset: -3px;
         }
 
         /* TASKS remains the stronger card at the bottom. */
         #mizuhana-hud .mizu-home .mizu-tasks {
             margin-top: 13px;
-            padding: 14px;
-            border: 1px solid color-mix(in srgb, var(--mizu-accent) 46%, var(--mizu-border));
+            padding: 13px 14px;
+            border: 1px solid var(--mizu-border);
             border-radius: 11px;
-            background: color-mix(in srgb, var(--mizu-accent) 12%, var(--mizu-bg));
+            background: color-mix(in srgb, var(--mizu-secondary) 8%, var(--mizu-panel));
             box-shadow: 0 2px 10px rgba(0,0,0,.04);
         }
 
         #mizuhana-hud .mizu-home .mizu-task-row {
-            padding-top: 5px;
-            padding-bottom: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 2px 10px;
+            padding: 5px 0;
+            border-top: 1px solid var(--mizu-soft-border);
+        }
+
+        #mizuhana-hud .mizu-home .mizu-task-name {
+            flex: 1 1 14ch;
+            min-width: 0;
+            overflow: visible;
+            white-space: normal;
+            text-overflow: clip;
+            font-weight: 750;
+        }
+
+        #mizuhana-hud .mizu-home .mizu-task-time {
+            flex: 0 1 auto;
+            margin-left: auto;
+            color: var(--mizu-muted);
+            font-variant-numeric: tabular-nums;
+            font-weight: 650;
+            text-align: right;
+            white-space: normal;
         }
 
         /* Compact keeps full prose; no historical line clamp. */
@@ -6623,12 +6671,11 @@ Rules:
 
                     <div class="mizu-setting-options">
 
-                        ${settingButton('theme', 'island-light', '🌊 Island Light', state.hudTheme)}
-                        ${settingButton('theme', 'island-night', '🌙 Island Night', state.hudTheme)}
-                        ${settingButton('theme', 'sakura', '🌸 Sakura', state.hudTheme)}
-                        ${settingButton('theme', 'forest', '🌿 Forest', state.hudTheme)}
-                        ${settingButton('theme', 'midnight', '🖤 Midnight', state.hudTheme)}
-                        ${settingButton('theme', 'follow-chatgpt', '⚙️ Follow ChatGPT', state.hudTheme)}
+                        ${settingButton('theme', 'nagihama', '🌑 Nagihama', state.hudTheme)}
+                        ${settingButton('theme', 'isanami', '🌊 Isanami', state.hudTheme)}
+                        ${settingButton('theme', 'moriyama', '🌿 Moriyama', state.hudTheme)}
+                        ${settingButton('theme', 'hanaharumi', '🌺 Hanaharumi', state.hudTheme)}
+                        ${settingButton('theme', 'mizuhana', '🌹 Mizuhana', state.hudTheme)}
 
                     </div>
 
@@ -6769,7 +6816,8 @@ Rules:
                     ${value === current ? 'active' : ''}
                 "
                 data-setting-type="${type}"
-                data-setting-value="${value}">
+                data-setting-value="${value}"
+                ${type === 'theme' ? `aria-pressed="${value === current}"` : ''}>
 
                 ${escapeHTML(label)}
 
@@ -6854,7 +6902,7 @@ Rules:
         hud.classList.add(
             `mizu-layout-${layout}`,
             `mizu-display-${state.displayMode}`,
-            `mizu-theme-${state.hudTheme || 'island-light'}`
+            `mizu-theme-${state.hudTheme || DEFAULT_STATE.hudTheme}`
         );
 
         if (state.titleScreen) {
@@ -7232,6 +7280,14 @@ Rules:
 
 
         /* ---------- OUTFIT ---------- */
+
+        hud
+            .querySelector('.mizu-tracker-location')
+            ?.addEventListener('click', () => {
+                state.activePage = 'map';
+                saveState();
+                renderHUD();
+            });
 
         hud
             .querySelector('#mizu-outfit')
@@ -7689,10 +7745,12 @@ Rules:
             padding: 16px 18px !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
-            border: 3px solid color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-border)) !important;
+            border: 3px solid var(--mizu-accent) !important;
             border-radius: 11px !important;
             background: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg)) !important;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 2px 8px rgba(0,0,0,.045) !important;
+            box-shadow: inset 0 0 0 4px var(--mizu-panel),
+                        inset 0 0 0 5px var(--mizu-story-line),
+                        0 2px 8px rgba(0,0,0,.08) !important;
             scrollbar-width: thin !important;
             scrollbar-color: color-mix(in srgb, var(--mizu-accent) 72%, var(--mizu-text)) transparent !important;
         }
@@ -7774,6 +7832,22 @@ Rules:
             background-clip: padding-box !important;
         }
 
+        /* Theme selector and keyboard navigation remain legible in every palette. */
+        #mizuhana-hud .mizu-setting-option.active {
+            border-color: var(--mizu-accent);
+            background: var(--mizu-soft-strong);
+            font-weight: 800;
+        }
+
+        #mizuhana-hud .mizu-setting-option[data-setting-type="theme"].active::before {
+            content: '✓ ';
+        }
+
+        #mizuhana-hud button:focus-visible {
+            outline: 2px solid var(--mizu-focus) !important;
+            outline-offset: 2px !important;
+        }
+
         /* ---------- Mobile play shell + story-first HOME ---------- */
         #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):not(.mizu-title-active) {
             --mizu-play-height: min(760px, calc(100dvh - 190px));
@@ -7800,6 +7874,13 @@ Rules:
             max-height: min(60dvh, 500px) !important;
             min-height: 360px !important;
             margin: 0 0 12px !important;
+            box-sizing: border-box !important;
+            padding: 16px 18px !important;
+            border: 3px solid var(--mizu-accent) !important;
+            border-radius: 11px !important;
+            background: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg)) !important;
+            box-shadow: inset 0 0 0 4px var(--mizu-panel),
+                        inset 0 0 0 5px var(--mizu-story-line) !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
             overscroll-behavior-y: auto !important;
