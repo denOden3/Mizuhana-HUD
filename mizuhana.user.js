@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.14
+// @version      0.7.15
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -7433,6 +7433,55 @@ Rules:
         }
     }, 1500);
 
+
+
+    /* =========================================================
+       v0.7.15 — unified page height + scrollable mobile destination
+       All normal pages use the same HUD shell height as HOME.
+       Destination keeps its seam fix while the outer main viewport scrolls.
+       ========================================================= */
+    GM_addStyle(`
+        #mizuhana-hud:not(.mizu-display-bar):not(.mizu-title-active) {
+            height: var(--mizu-play-height, calc(100dvh - 105px)) !important;
+            max-height: var(--mizu-play-height, calc(100dvh - 105px)) !important;
+            min-height: 0 !important;
+        }
+
+        #mizuhana-hud:not(.mizu-display-bar):not(.mizu-title-active) > #mizu-main {
+            height: calc(100% - 45px) !important;
+            min-height: 0 !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):not(.mizu-title-active) {
+            --mizu-play-height: min(760px, calc(100dvh - 190px));
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):has(.mizu-region-creator) > #mizu-main {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            overscroll-behavior-y: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar):has(.mizu-region-creator) > #mizu-main::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile .mizu-region-creator {
+            height: auto !important;
+            min-height: 100% !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        #mizuhana-hud.mizu-layout-mobile .mizu-region-backdrop {
+            position: fixed !important;
+            inset: 0 !important;
+        }
+    `);
 
 
     /* =========================================================
