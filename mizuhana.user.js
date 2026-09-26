@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.7.22
+// @version      0.7.23
 // @description  Responsive Mizuhana Island HUD for a selected ChatGPT conversation.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -879,6 +879,11 @@ Rules:
             --mizu-story-line: #a34d3e;
             --mizu-soft: rgba(0, 102, 120, .10);
             --mizu-soft-strong: rgba(0, 102, 120, .19);
+            --mizu-header: var(--mizu-panel);
+            --mizu-story-surface: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg));
+            --mizu-choice-surface: color-mix(in srgb, var(--mizu-story-surface) 87%, var(--mizu-accent));
+            --mizu-task-cap: color-mix(in srgb, var(--mizu-bg) 35%, var(--mizu-panel));
+            --mizu-task-detail: var(--mizu-secondary);
 
             position: fixed;
             z-index: 99990;
@@ -985,20 +990,23 @@ Rules:
         }
 
         #mizuhana-hud.mizu-theme-mizuhana {
-            --mizu-bg: #241e22;
-            --mizu-panel: #34282c;
-            --mizu-text: #f9eee3;
-            --mizu-muted: #dec9c1;
-            --mizu-border: #a96669;
-            --mizu-frame: #c77977;
-            --mizu-accent: #dd7774;
-            --mizu-secondary: #dfbd81;
-            --mizu-soft-border: #905656;
-            --mizu-hover: rgba(221, 119, 116, .13);
-            --mizu-focus: #efd093;
-            --mizu-story-line: #be6968;
-            --mizu-soft: rgba(221, 119, 116, .10);
-            --mizu-soft-strong: rgba(221, 119, 116, .20);
+            --mizu-bg: #111214;
+            --mizu-panel: #232124;
+            --mizu-header: #171719;
+            --mizu-text: #f7eee2;
+            --mizu-muted: #d4c7bc;
+            --mizu-border: #ae625b;
+            --mizu-frame: #b76961;
+            --mizu-accent: #dc6859;
+            --mizu-secondary: #d1b387;
+            --mizu-soft-border: #75514c;
+            --mizu-hover: rgba(220, 104, 89, .12);
+            --mizu-focus: #e6c894;
+            --mizu-story-line: #af5c55;
+            --mizu-soft: rgba(220, 104, 89, .09);
+            --mizu-soft-strong: rgba(220, 104, 89, .19);
+            --mizu-task-cap: #1b1b1d;
+            --mizu-task-detail: #869079;
         }
 
         #mizuhana-hud.mizu-text-small { font-size: 12px; }
@@ -1049,7 +1057,7 @@ Rules:
             border-bottom:
                 2px solid var(--mizu-border);
 
-            background: var(--mizu-panel);
+            background: var(--mizu-header);
 
             overflow-x: auto;
             scrollbar-width: none;
@@ -5567,6 +5575,28 @@ Rules:
             box-shadow: 0 2px 10px rgba(0,0,0,.04);
         }
 
+        #mizuhana-hud .mizu-home .mizu-task-heading {
+            min-height: 31px;
+            margin: -13px -14px 8px;
+            padding: 5px 12px;
+            border-bottom: 1px solid var(--mizu-soft-border);
+            border-radius: 10px 10px 0 0;
+            background: var(--mizu-task-cap);
+        }
+
+        #mizuhana-hud .mizu-home .mizu-task-heading::before {
+            content: '';
+            width: 2px;
+            height: 14px;
+            flex: 0 0 2px;
+            border-radius: 2px;
+            background: var(--mizu-task-detail);
+        }
+
+        #mizuhana-hud .mizu-home .mizu-task-heading .mizu-label {
+            margin-right: auto;
+        }
+
         #mizuhana-hud .mizu-home .mizu-task-row {
             display: flex;
             flex-wrap: wrap;
@@ -7732,7 +7762,7 @@ Rules:
             overflow-x: hidden !important;
             border: 3px solid var(--mizu-accent) !important;
             border-radius: 11px !important;
-            background: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg)) !important;
+            background: var(--mizu-story-surface) !important;
             box-shadow: inset 0 0 0 4px var(--mizu-panel),
                         inset 0 0 0 5px var(--mizu-story-line),
                         0 2px 8px rgba(0,0,0,.08) !important;
@@ -7794,13 +7824,13 @@ Rules:
             min-height: 0 !important;
             padding: 7px 10px !important;
             line-height: 1.34 !important;
-            background: color-mix(in srgb, var(--mizu-accent) 15%, var(--mizu-panel)) !important;
-            border: 1px solid color-mix(in srgb, var(--mizu-accent) 70%, var(--mizu-border)) !important;
+            background: var(--mizu-choice-surface) !important;
+            border: 1px solid color-mix(in srgb, var(--mizu-accent) 57%, var(--mizu-border)) !important;
             box-shadow: 0 2px 7px rgba(0,0,0,.055) !important;
         }
 
         #mizuhana-hud .mizu-home .mizu-choice:hover {
-            background: color-mix(in srgb, var(--mizu-accent) 24%, var(--mizu-panel)) !important;
+            background: color-mix(in srgb, var(--mizu-story-surface) 77%, var(--mizu-accent)) !important;
             border-color: var(--mizu-accent) !important;
         }
 
@@ -7863,7 +7893,7 @@ Rules:
             padding: 16px 18px !important;
             border: 3px solid var(--mizu-accent) !important;
             border-radius: 11px !important;
-            background: color-mix(in srgb, var(--mizu-panel) 88%, var(--mizu-bg)) !important;
+            background: var(--mizu-story-surface) !important;
             box-shadow: inset 0 0 0 4px var(--mizu-panel),
                         inset 0 0 0 5px var(--mizu-story-line) !important;
             overflow-y: auto !important;
