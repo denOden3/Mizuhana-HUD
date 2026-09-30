@@ -1,0 +1,30 @@
+/* Semantic roles reuse the HUD's Moriyama palette; isolated to the prototype. */
+:root { --mizu-bg:#e8ede2; --mizu-panel:#fff8e9; --mizu-text:#263a2d; --mizu-muted:#4a6050; --mizu-border:#67836f; --mizu-accent:#32684e; --mizu-focus:#975239; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--mizu-bg); color:var(--mizu-text); font:16px/1.5 system-ui,sans-serif; }
+main { max-width:1220px; padding:28px; margin:auto; }
+h1 { font:600 clamp(25px,4vw,38px)/1.15 Georgia,serif; margin:8px 0 12px; }
+h2 { font-size:20px; margin:0 0 12px; }
+p { margin:0 0 14px; }
+.eyebrow { font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:var(--mizu-muted); }
+form { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin:22px 0 16px; }
+label { display:grid; gap:4px; font-size:14px; font-weight:600; flex:1; max-width:420px; }
+input,button { font:inherit; border:1px solid var(--mizu-border); border-radius:7px; padding:10px 14px; min-height:44px; }
+input { width:100%; min-width:0; background:var(--mizu-panel); color:var(--mizu-text); }
+button { background:var(--mizu-accent); color:#fff8e9; cursor:pointer; }
+input:focus-visible,button:focus-visible { outline:3px solid var(--mizu-focus); outline-offset:3px; }
+.workspace { display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:18px; align-items:start; }
+.map-card,aside { border:1px solid var(--mizu-border); border-radius:14px; background:var(--mizu-panel); overflow:hidden; }
+.map-scroll { overflow-x:auto; }
+svg { display:block; width:100%; min-width:640px; height:auto; }
+.caption { padding:12px 16px; border-top:1px solid var(--mizu-border); color:var(--mizu-muted); font-size:13px; }
+aside { padding:20px; min-height:220px; }
+small { color:var(--mizu-muted); display:block; }
+ul { display:flex; flex-wrap:wrap; gap:8px 22px; list-style:none; padding:0; margin:16px 0; font-size:13px; }
+li { display:flex; align-items:center; gap:7px; }
+.swatch { width:14px; height:14px; border-radius:3px; border:1px solid var(--mizu-text); }
+.ground { fill:#dce5d3; }.sidewalk { fill:none; stroke:#eee4ce; stroke-width:100; }.road { fill:none; stroke:#7b837d; stroke-width:58; }.road-center { fill:none; stroke:#e7e6d6; stroke-width:2; stroke-dasharray:12 14; }
+.tree-shadow,.building-shadow { fill:#23382d; opacity:.16; }.tree { fill:#527652; stroke:#34533c; stroke-width:1.5; }.tree-light { fill:#759263; }
+.building { cursor:pointer; }.lot { fill:#f4ecd9; stroke:#a5af9a; stroke-width:1.5; }.footprint { stroke:#334338; stroke-width:2; }.roof-ridge,.roof-inset { fill:none; stroke:#efe6d3; stroke-width:2; opacity:.55; }.awning { fill:#f4dfb8; }.awning-stripe { stroke:#8b5344; stroke-width:6; }.door { fill:#2d3931; }.number-plate { fill:#fff8e9; }.lot-number { fill:#263a2d; font:bold 16px system-ui,sans-serif; pointer-events:none; }
+.building:hover .lot { stroke:#263a2d; stroke-width:3; }.building:focus { outline:none; }.building:focus-visible .lot { stroke:var(--mizu-focus); stroke-width:5; stroke-dasharray:6 3; }.building[aria-pressed="true"] .footprint { stroke:#fff8e9; stroke-width:5; }.building[aria-pressed="true"] .lot { stroke:#263a2d; stroke-width:5; }
+@media(max-width:850px) { main { padding:18px 12px; }.workspace { grid-template-columns:1fr; }aside { min-height:150px; } }
