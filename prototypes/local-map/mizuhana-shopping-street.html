@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Mizuhana · Shopping Street Prototype</title><style>
+/* Semantic roles reuse the HUD's Moriyama palette; isolated to the prototype. */
+:root { --mizu-bg:#e8ede2; --mizu-panel:#fff8e9; --mizu-text:#263a2d; --mizu-muted:#4a6050; --mizu-border:#67836f; --mizu-accent:#32684e; --mizu-focus:#975239; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--mizu-bg); color:var(--mizu-text); font:16px/1.5 system-ui,sans-serif; }
+main { max-width:1220px; padding:28px; margin:auto; }
+h1 { font:600 clamp(25px,4vw,38px)/1.15 Georgia,serif; margin:8px 0 12px; }
+h2 { font-size:20px; margin:0 0 12px; }
+p { margin:0 0 14px; }
+.eyebrow { font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:var(--mizu-muted); }
+form { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin:22px 0 16px; }
+label { display:grid; gap:4px; font-size:14px; font-weight:600; flex:1; max-width:420px; }
+input,button { font:inherit; border:1px solid var(--mizu-border); border-radius:7px; padding:10px 14px; min-height:44px; }
+input { width:100%; min-width:0; background:var(--mizu-panel); color:var(--mizu-text); }
+button { background:var(--mizu-accent); color:#fff8e9; cursor:pointer; }
+input:focus-visible,button:focus-visible { outline:3px solid var(--mizu-focus); outline-offset:3px; }
+.workspace { display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:18px; align-items:start; }
+.map-card,aside { border:1px solid var(--mizu-border); border-radius:14px; background:var(--mizu-panel); overflow:hidden; }
+.map-scroll { overflow-x:auto; }
+svg { display:block; width:100%; min-width:640px; height:auto; }
+.caption { padding:12px 16px; border-top:1px solid var(--mizu-border); color:var(--mizu-muted); font-size:13px; }
+aside { padding:20px; min-height:220px; }
+small { color:var(--mizu-muted); display:block; }
+ul { display:flex; flex-wrap:wrap; gap:8px 22px; list-style:none; padding:0; margin:16px 0; font-size:13px; }
+li { display:flex; align-items:center; gap:7px; }
+.swatch { width:14px; height:14px; border-radius:3px; border:1px solid var(--mizu-text); }
+.ground { fill:#dce5d3; }.sidewalk { fill:none; stroke:#eee4ce; stroke-width:100; }.road { fill:none; stroke:#7b837d; stroke-width:58; }.road-center { fill:none; stroke:#e7e6d6; stroke-width:2; stroke-dasharray:12 14; }
+.tree-shadow,.building-shadow { fill:#23382d; opacity:.16; }.tree { fill:#527652; stroke:#34533c; stroke-width:1.5; }.tree-light { fill:#759263; }
+.building { cursor:pointer; }.lot { fill:#f4ecd9; stroke:#a5af9a; stroke-width:1.5; }.footprint { stroke:#334338; stroke-width:2; }.roof-ridge,.roof-inset { fill:none; stroke:#efe6d3; stroke-width:2; opacity:.55; }.awning { fill:#f4dfb8; }.awning-stripe { stroke:#8b5344; stroke-width:6; }.door { fill:#2d3931; }.number-plate { fill:#fff8e9; }.lot-number { fill:#263a2d; font:bold 16px system-ui,sans-serif; pointer-events:none; }
+.building:hover .lot { stroke:#263a2d; stroke-width:3; }.building:focus { outline:none; }.building:focus-visible .lot { stroke:var(--mizu-focus); stroke-width:5; stroke-dasharray:6 3; }.building[aria-pressed="true"] .footprint { stroke:#fff8e9; stroke-width:5; }.building[aria-pressed="true"] .lot { stroke:#263a2d; stroke-width:5; }
+@media(max-width:850px) { main { padding:18px 12px; }.workspace { grid-template-columns:1fr; }aside { min-height:150px; } }
+
+</style></head>
+<body><main data-mizu-street><header><div class="eyebrow">Mizuhana · Local-map experiment</div><h1>A little shopping street</h1><p>One gently curving road, familiar shop shapes, and pockets of green. The same seed always brings you back to the same street.</p></header>
+<form><label>Street seed<input name="seed" value="mizuhana-shopping-01" maxlength="200" autocomplete="off"></label><button type="submit">Generate street</button></form>
+<div class="workspace"><section class="map-card" aria-label="Shopping street map"><div class="map-scroll"><svg viewBox="0 0 1000 620" role="group" aria-labelledby="street-title"></svg></div><div class="caption"><span data-status></span><br>Click a lot, or Tab to it and press Enter or Space. On a phone, swipe the map sideways.</div></section><aside data-details aria-live="polite" aria-atomic="true"></aside></div>
+<ul data-legend aria-label="Building types"></ul><small>Proof of concept only. These shops are placeholders, not world canon. This page does not change your HUD, Map page, or saves.</small>
+</main><script>
+/* Mizuhana local street POC v1. Plain JS, no storage, no HUD hooks. */
+(function (root) {
+  'use strict';
+  const TYPES = Object.freeze([
+    { id: 'cafe', name: 'Tea & Coffee', note: 'A quiet counter, warm cups, and a seat by the window.', roof: '#955b48', shape: 'gable' },
+    { id: 'grocer', name: 'Corner Grocer', note: 'Seasonal produce and everyday provisions.', roof: '#44694f', shape: 'awning' },
+    { id: 'bakery', name: 'Street Bakery', note: 'Fresh bread and a small display of sweets.', roof: '#a4763c', shape: 'awning' },
+    { id: 'boutique', name: 'Little Boutique', note: 'Clothes, accessories, and locally made gifts.', roof: '#765971', shape: 'gable' },
+    { id: 'workshop', name: 'Craft Workshop', note: 'Handmade goods and a well-used workbench.', roof: '#526a78', shape: 'flat' }
+  ]);
+  function randomFor(seed) {
+    let h = 2166136261;
+    for (const c of seed) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); }
+    return function () { h += 0x6D2B79F5; let t = Math.imul(h ^ h >>> 15, h | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  const round = n => Math.round(n * 100) / 100;
+  function generate(seed = 'mizuhana-shopping-01') {
+    seed = String(seed);
+    const rand = randomFor(seed);
+    const amplitude = 20 + rand() * 20, phase = rand() * Math.PI * 2;
+    const yAt = x => 310 + Math.sin((x - 100) / 800 * Math.PI * 1.5 + phase) * amplitude;
+    const slopeAt = x => Math.cos((x - 100) / 800 * Math.PI * 1.5 + phase) * amplitude * Math.PI * 1.5 / 800;
+    const road = Array.from({ length: 49 }, (_, i) => { const x = 30 + i * 940 / 48; return { x: round(x), y: round(yAt(x)) }; });
+    const count = 8 + Math.floor(rand() * 5), buildings = [], trees = [];
+    // Each side gets disjoint 150px slots. Width, angle and depth bounds preserve separation.
+    for (let i = 0; i < count; i++) {
+      const side = i % 2 ? 1 : -1, slot = Math.floor(i / 2);
+      const sideCount = side === -1 ? Math.ceil(count / 2) : Math.floor(count / 2);
+      const x = 125 + slot * (750 / (sideCount - 1)) + (rand() - .5) * 14;
+      const w = 79 + rand() * 21, h = 58 + rand() * 18;
+      const y = yAt(x) + side * (79 + h / 2);
+      const type = TYPES[(slot + (side === 1 ? 2 : 0) + Math.floor(rand() * 2)) % TYPES.length];
+      buildings.push({ id: `lot-${i + 1}`, lot: i + 1, type: type.id, x: round(x), y: round(y), w: round(w), h: round(h), angle: round(Math.atan(slopeAt(x)) * 180 / Math.PI), side });
+      trees.push({ x: round(x + 58), y: round(yAt(x + 58) + side * 59), r: round(9 + rand() * 5) });
+      trees.push({ x: round(x - 35 + rand() * 60), y: round(y + side * (h / 2 + 39)), r: round(13 + rand() * 6) });
+    }
+    return { version: 1, seed, width: 1000, height: 620, road, buildings, trees };
+  }
+  function details(building) {
+    const type = TYPES.find(t => t.id === building.type);
+    return { title: `${type.name} · Lot ${building.lot}`, description: type.note, address: `Shopping Street, lot ${building.lot}`, status: 'Placeholder · hours, stock, and residents are not simulated.' };
+  }
+  function mount(container) {
+    const doc = container.ownerDocument, svg = container.querySelector('svg'), form = container.querySelector('form'), input = form.elements.seed;
+    const info = container.querySelector('[data-details]'), status = container.querySelector('[data-status]');
+    let map, selected;
+    const ns = 'http://www.w3.org/2000/svg';
+    function node(name, attrs, parent, value) {
+      const el = doc.createElementNS(ns, name);
+      for (const [key, val] of Object.entries(attrs || {})) el.setAttribute(key, String(val));
+      if (value !== undefined) el.textContent = value;
+      if (parent) parent.appendChild(el);
+      return el;
+    }
+    function select(id) {
+      const b = map.buildings.find(b => b.id === id); if (!b) return;
+      selected = id;
+      for (const el of svg.querySelectorAll('[data-lot]')) el.setAttribute('aria-pressed', String(el.dataset.lot === id));
+      const d = details(b); info.replaceChildren();
+      for (const [tag, value] of [['h2', d.title], ['p', d.description], ['p', d.address], ['small', d.status]]) {
+        const el = doc.createElement(tag); el.textContent = value; info.appendChild(el);
+      }
+    }
+    function draw(seed) {
+      map = generate(seed); selected = null; svg.replaceChildren();
+      node('title', { id: 'street-title' }, svg, 'Mizuhana shopping street prototype');
+      node('desc', {}, svg, 'A curved road with shop lots on both sides. Tab to a building and press Enter or Space for details.');
+      node('rect', { width: 1000, height: 620, rx: 22, class: 'ground' }, svg);
+      const d = map.road.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ');
+      node('path', { d, class: 'sidewalk' }, svg);
+      node('path', { d, class: 'road' }, svg);
+      node('path', { d, class: 'road-center' }, svg);
+      const greenery = node('g', { 'aria-hidden': 'true' }, svg);
+      for (const t of map.trees) {
+        node('circle', { cx: t.x + 3, cy: t.y + 4, r: t.r, class: 'tree-shadow' }, greenery);
+        node('circle', { cx: t.x, cy: t.y, r: t.r, class: 'tree' }, greenery);
+        node('circle', { cx: t.x - 3, cy: t.y - 3, r: t.r * .55, class: 'tree-light' }, greenery);
+      }
+      for (const b of map.buildings) {
+        const type = TYPES.find(t => t.id === b.type);
+        const g = node('g', { transform: `translate(${b.x} ${b.y}) rotate(${b.angle})`, role: 'button', tabindex: 0, 'aria-label': details(b).title, 'aria-pressed': 'false', 'data-lot': b.id, class: 'building' }, svg);
+        node('rect', { x: -b.w/2 - 7, y: -b.h/2 - 7, width: b.w+14, height: b.h+14, rx: 5, class: 'lot' }, g);
+        node('rect', { x: -b.w/2+3, y: -b.h/2+5, width: b.w, height: b.h, rx: 3, class: 'building-shadow' }, g);
+        node('rect', { x: -b.w/2, y: -b.h/2, width: b.w, height: b.h, rx: 3, fill: type.roof, class: 'footprint' }, g);
+        if (type.shape === 'gable') node('path', { d: `M${-b.w/2+5} 0H${b.w/2-5}`, class: 'roof-ridge' }, g);
+        if (type.shape === 'flat') node('rect', { x: -b.w/2+10, y: -b.h/2+10, width: b.w-20, height: b.h-20, class: 'roof-inset' }, g);
+        const front = -b.side * (b.h/2 - 5);
+        if (type.shape === 'awning') {
+          node('rect', { x: -b.w/2+5, y: front-4, width: b.w-10, height: 8, class: 'awning' }, g);
+          for (let x = -b.w/2+9; x < b.w/2-5; x += 14) node('path', { d: `M${x} ${front-4}v8`, class: 'awning-stripe' }, g);
+        }
+        node('rect', { x: -6, y: front-3, width: 12, height: 6, class: 'door' }, g);
+        node('rect', { x: -19, y: -14, width: 38, height: 28, rx: 5, class: 'number-plate' }, g);
+        node('text', { x: 0, y: 5, 'text-anchor': 'middle', class: 'lot-number' }, g, b.lot);
+      }
+      status.textContent = `${map.buildings.length} lots · fixed seed · generator v1`;
+      info.replaceChildren(); const hint = doc.createElement('p'); hint.textContent = 'Select a building to inspect its placeholder details.'; info.appendChild(hint);
+      const legend = container.querySelector('[data-legend]'); legend.replaceChildren();
+      for (const t of TYPES) { const li = doc.createElement('li'), swatch = doc.createElement('span'); swatch.style.background = t.roof; swatch.className = 'swatch'; swatch.setAttribute('aria-hidden', 'true'); li.append(swatch, doc.createTextNode(t.name)); legend.appendChild(li); }
+    }
+    const click = e => { const g = e.target.closest('[data-lot]'); if (g) select(g.dataset.lot); };
+    const key = e => { if (e.key === 'Enter' || e.key === ' ') { const g = e.target.closest('[data-lot]'); if (g) { e.preventDefault(); select(g.dataset.lot); } } };
+    const submit = e => { e.preventDefault(); draw(input.value); };
+    svg.addEventListener('click', click); svg.addEventListener('keydown', key); form.addEventListener('submit', submit);
+    draw(input.value);
+    return { generate: draw, select, getMap: () => map, destroy() { svg.removeEventListener('click', click); svg.removeEventListener('keydown', key); form.removeEventListener('submit', submit); } };
+  }
+  const api = { generate, details, mount, TYPES };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.MizuhanaStreet = api; const el = document.querySelector('[data-mizu-street]'); if (el) mount(el); }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script></body></html>
