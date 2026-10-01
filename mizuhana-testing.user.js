@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mizuhana Island HUD
 // @namespace    mizuhana.local
-// @version      0.8.0
+// @version      0.8.1
 // @description  Experimental Mizuhana workspace, map and modular panels. Separate testing saves.
 // @match        https://chatgpt.com/*
 // @run-at       document-idle
@@ -249,6 +249,7 @@
         ['hanaharumi-islet', 'Tourism / conservation islet', 'hanaharumi', .52, .86, 'Islet', 'One major offshore islet shared by tourism and marine conservation.']
     ];
     let workspaceExpanded = null;
+    let workspaceEditorReturn = null;
     let workspaceFocusReturn = '';
     let workspaceScroll = {};
     let workspacePanelJump = null;
@@ -382,8 +383,8 @@
     function workspaceSidebarHTML(mapContext) {
         return `<aside class="mizu-tracker mizu-ws-sidebar">${mapContext ? contextualCompassHTML() : workspaceTrackerHTML()}
             <details class="mizu-panel-drawer" ${determineLayout() === 'mobile' && !state.hudWorkspace.drawerOpen ? '' : 'open'}><summary>Panel Dock</summary>
-            <div class="mizu-panel-rail" aria-label="Sidebar panels">${PANEL_TYPES.map(([id, icon, label]) => `<button type="button" class="mizu-button" data-ws-action="panel-jump" data-panel="${id}" aria-label="${label}" title="${label}" aria-pressed="${state.hudWorkspace.panels.includes(id)}">${icon}</button>`).join('')}${wsButton('⚙', 'expand', 'data-panel="dock" aria-label="Configure Panel Dock"')}</div>
-            <div class="mizu-panel-dock">${state.hudWorkspace.panels.map(id => `<section class="mizu-ws-panel ${id === 'tasks' ? 'mizu-ws-tasks' : ''}" id="mizu-panel-${id}">${panelCompactHTML(id)}</section>`).join('') || '<p>Choose an icon to open a panel.</p>'}</div></details></aside>`;
+            <div class="mizu-panel-drawer-content"><div class="mizu-panel-rail" aria-label="Sidebar panels">${PANEL_TYPES.map(([id, icon, label]) => `<button type="button" class="mizu-button" data-ws-action="panel-jump" data-panel="${id}" aria-label="${label}" title="${label}" aria-pressed="${state.hudWorkspace.panels.includes(id)}">${icon}</button>`).join('')}${wsButton('⚙', 'expand', 'data-panel="dock" aria-label="Configure Panel Dock"')}</div>
+            <div class="mizu-panel-dock">${state.hudWorkspace.panels.map(id => `<section class="mizu-ws-panel ${id === 'tasks' ? 'mizu-ws-tasks' : ''}" id="mizu-panel-${id}">${panelCompactHTML(id)}</section>`).join('') || '<p>Choose an icon to open a panel.</p>'}</div></div></details></aside>`;
     }
     function workspacePageHTML(content, mapContext = false) {
         return `<div class="mizu-page mizu-home mizu-workspace-page ${workspaceExpanded ? 'mizu-ws-expanded-page' : 'mizu-ws-map-page'}"><section class="mizu-scene-panel mizu-ws-main">${content}</section>${workspaceSidebarHTML(mapContext)}</div>`;
@@ -447,13 +448,13 @@
             if (index !== 4 && !cells[index]) cells[index] = n;
             else { const free = cells.findIndex((x, i) => i !== 4 && !x); if (free >= 0) cells[free] = n; }
         }
-        return `<div class="mizu-ws-compass"><strong>Around you</strong><div class="mizu-compass-grid">${cells.map((n, i) => n ? `<button class="mizu-button ${n.id === map.selection ? 'active' : ''}" data-ws-action="map-select" data-node="${escapeHTML(n.id)}" aria-pressed="${n.id === map.selection}">${i === 4 ? '📍 ' : ''}${escapeHTML(nodeLabel(n))}${n.closed && n.known ? ' · Closed' : ''}</button>` : '<span aria-hidden="true">·</span>').join('')}</div><small>Contextual destinations, not a scale map.</small></div>`;
+        return `<div class="mizu-ws-compass"><strong>Around you</strong><div class="mizu-compass-grid">${cells.map((n, i) => n ? `<button class="mizu-button ${n.id === map.selection ? 'active' : ''}" data-ws-action="map-select" data-node="${escapeHTML(n.id)}" aria-pressed="${n.id === map.selection}">${i === 4 ? '📍 ' : ''}${escapeHTML(nodeLabel(n))}${n.closed && n.known ? ' · Closed' : ''}</button>` : '<span aria-hidden="true">·</span>').join('')}</div></div>`;
     }
     function mapBaseSVG(view, region) {
         const land = 'M205 95 C290 20 650 35 765 170 C845 285 885 430 790 550 C735 590 605 585 485 550 C330 500 225 560 145 440 C90 365 115 280 170 265 C250 235 235 350 320 385 C440 430 575 355 490 275 C395 195 280 215 205 95Z';
-        if (view === 'island') return `<svg viewBox="0 0 1000 650" aria-hidden="true" class="mizu-map-base"><path d="${land}" fill="var(--mizu-map-land)" stroke="var(--mizu-border)" stroke-width="3"/><path d="M470 95L575 140L650 290L740 380" fill="none" stroke="var(--mizu-map-ridge)" stroke-width="18" stroke-linecap="round"/><path d="M280 240Q480 310 600 170Q745 310 760 416M280 240Q280 450 410 507Q630 540 760 416" fill="none" stroke="var(--mizu-map-road)" stroke-width="3" stroke-dasharray="8 5"/><ellipse cx="410" cy="610" rx="67" ry="23" fill="var(--mizu-map-land)"/><circle cx="885" cy="440" r="18" fill="var(--mizu-map-land)"/><circle cx="930" cy="475" r="13" fill="var(--mizu-map-land)"/><circle cx="865" cy="525" r="15" fill="var(--mizu-map-land)"/></svg>`;
+        if (view === 'island') return `<svg viewBox="0 0 1000 650" preserveAspectRatio="none" aria-hidden="true" class="mizu-map-base"><path d="${land}" fill="var(--mizu-map-land)" stroke="var(--mizu-border)" stroke-width="3"/><path d="M470 95L575 140L650 290L740 380" fill="none" stroke="var(--mizu-map-ridge)" stroke-width="18" stroke-linecap="round"/><path d="M280 240Q480 310 600 170Q745 310 760 416M280 240Q280 450 410 507Q630 540 760 416" fill="none" stroke="var(--mizu-map-road)" stroke-width="3" stroke-dasharray="8 5"/><ellipse cx="410" cy="610" rx="67" ry="23" fill="var(--mizu-map-land)"/><circle cx="885" cy="440" r="18" fill="var(--mizu-map-land)"/><circle cx="930" cy="475" r="13" fill="var(--mizu-map-land)"/><circle cx="865" cy="525" r="15" fill="var(--mizu-map-land)"/></svg>`;
         const shape = region === 'moriyama' ? '<path d="M80 490L300 100L430 340L615 85L940 480Z"/>' : region === 'isanami' ? '<path d="M0 0H750Q540 110 735 230Q520 330 760 470L650 650H0Z"/><circle cx="870" cy="190" r="45"/><circle cx="895" cy="390" r="33"/><circle cx="800" cy="540" r="37"/>' : '<path d="M0 0H1000V390Q740 295 530 420Q290 550 0 410Z"/>';
-        return `<svg viewBox="0 0 1000 650" aria-hidden="true" class="mizu-map-base"><g fill="var(--mizu-map-land)" stroke="var(--mizu-border)" stroke-width="2">${shape}</g>${view === 'local' ? '<path d="M90 165H910M90 325H910M90 485H910M180 70V580M500 70V580M820 70V580" fill="none" stroke="var(--mizu-map-road)" stroke-width="2" opacity=".35"/>' : ''}</svg>`;
+        return `<svg viewBox="0 0 1000 650" preserveAspectRatio="none" aria-hidden="true" class="mizu-map-base"><g fill="var(--mizu-map-land)" stroke="var(--mizu-border)" stroke-width="2">${shape}</g>${view === 'local' ? '<path d="M90 165H910M90 325H910M90 485H910M180 70V580M500 70V580M820 70V580" fill="none" stroke="var(--mizu-map-road)" stroke-width="2" opacity=".35"/>' : ''}</svg>`;
     }
     function mapDetailHTML() {
         const map = state.worldMap;
@@ -465,7 +466,7 @@
         const n = map.nodes.find(x => x.id === map.selection);
         if (!n || n.known < 1) return '<h3>???</h3><p>This location has not been discovered.</p>';
         const routes = map.route.map(id => map.routes.find(r => r.id === id)).filter(Boolean);
-        return `<h3>${escapeHTML(nodeLabel(n))}${n.closed ? ' · Closed' : ''}</h3><p>${escapeHTML(n.known >= 3 ? n.description : 'Details not yet known.')}</p>${n.known >= 3 && n.tidbit ? `<p class="mizu-muted">${escapeHTML(n.tidbit)}</p>` : ''}<p>${escapeHTML(n.condition || 'Conditions not recorded')}</p>${n.closed ? '' : wsButton('Go Here', 'map-go', `data-node="${escapeHTML(n.id)}"`)}${wsButton('Plan Route', 'map-route', `data-node="${escapeHTML(n.id)}"`)}${wsButton('Open Local Map', 'map-view', 'data-value="local"')}${routes.length ? `<p>Route: ${routes.map(r => `${escapeHTML(r.mode)}${r.minutes !== null ? ` · ${r.minutes} min` : ' · time not recorded'}${r.condition ? ` · ${escapeHTML(r.condition)}` : ''}`).join(' → ')}</p>` : ''}<p class="mizu-ws-feedback" role="status"></p>`;
+        return `<h3>${escapeHTML(nodeLabel(n))}${n.closed ? ' · Closed' : ''}</h3><p>${escapeHTML(n.known >= 3 ? n.description : 'Details not yet known.')}</p>${n.known >= 3 && n.tidbit ? `<p class="mizu-muted">${escapeHTML(n.tidbit)}</p>` : ''}<p>${escapeHTML(n.condition || 'Conditions not recorded')}</p>${n.closed ? '' : wsButton('Go Here', 'map-go', `data-node="${escapeHTML(n.id)}"`)}${wsButton('Plan Route', 'map-route', `data-node="${escapeHTML(n.id)}"`)}${localMapExists(n.region) ? wsButton('Open Local Map', 'map-local', `data-region="${n.region}"`) : ''}${routes.length ? `<p>Route: ${routes.map(r => `${escapeHTML(r.mode)}${r.minutes !== null ? ` · ${r.minutes} min` : ' · time not recorded'}${r.condition ? ` · ${escapeHTML(r.condition)}` : ''}`).join(' → ')}</p>` : ''}<p class="mizu-ws-feedback" role="status"></p>`;
     }
     function workspaceMapHTML() {
         if (workspaceExpanded) return workspacePageHTML(expandedWorkspaceHTML(), true);
@@ -484,8 +485,8 @@
             const b = map.view === 'island' ? REGION_ANCHORS.find(n => n.id === to.region) : to;
             return `<line x1="${a.x * 1000}" y1="${a.y * 650}" x2="${b.x * 1000}" y2="${b.y * 650}" class="${map.route.includes(r.id) ? 'planned' : ''} ${r.closed ? 'closed' : ''}"><title>${escapeHTML(r.mode)}${r.condition ? ` · ${escapeHTML(r.condition)}` : ''}${r.closed ? ' · Closed' : ''}</title></line>${r.closed ? `<text x="${(a.x + b.x) * 500}" y="${(a.y + b.y) * 325}" fill="var(--mizu-text)" font-size="22">Closed</text>` : ''}`;
         }).join('');
-        return workspacePageHTML(`<div class="mizu-map-toolbar" aria-label="Map views">${['island', 'region', 'local'].map(v => wsButton(v[0].toUpperCase() + v.slice(1), 'map-view', `data-value="${v}" aria-pressed="${map.view === v}"`)).join('')}${wsButton('Map records', 'expand', 'data-panel="map-editor"')}</div>
-            <div class="mizu-map-canvas" aria-label="${map.view} map — schematic">${mapBaseSVG(map.view, map.region)}<svg class="mizu-map-routes" viewBox="0 0 1000 650" aria-hidden="true">${routes}</svg>${markers.map(n => `<button class="mizu-map-marker ${n.id === map.selection ? 'active' : ''}" style="left:${n.x * 100}%;top:${n.y * 100}%" data-ws-action="map-select" data-node="${escapeHTML(n.id)}" aria-pressed="${n.id === map.selection}">${n.id === map.current ? '📍 ' : ''}${escapeHTML(nodeLabel(n))}${n.closed && n.known ? ' ⛔' : ''}</button>`).join('')}${map.view !== 'island' ? state.relationships.filter(p => p.knowledge && p.nodeId && nodes.some(n => n.id === p.nodeId && n.known)).map(p => { const n = nodes.find(n => n.id === p.nodeId); return `<span class="mizu-npc-marker" style="left:${n.x * 100}%;top:${n.y * 100 + 5}%">${escapeHTML(p.name)} · ${escapeHTML(p.knowledge)}</span>`; }).join('') : ''}<small class="mizu-map-caption">Schematic · canonical regions, save-specific local records</small></div><div class="mizu-map-details">${mapDetailHTML()}</div>`, true);
+        return workspacePageHTML(`<div class="mizu-map-toolbar" aria-label="Map views"><div class="mizu-map-scale" role="group" aria-label="Geographic scale">${['island', 'region', 'local'].map(v => wsButton(v[0].toUpperCase() + v.slice(1), 'map-view', `data-value="${v}" aria-pressed="${map.view === v}"`)).join('')}</div>${wsButton('Zoom in', 'map-zoom', `${mapZoomTarget(map.selection) || nearestMapZoomTarget() ? '' : 'disabled'} aria-label="Zoom to a closer map"`)}</div>
+            <div class="mizu-map-canvas" aria-label="${map.view} map">${mapBaseSVG(map.view, map.region)}${map.view === 'island' ? islandMapArtworkHTML() : ''}<svg class="mizu-map-routes" viewBox="0 0 1000 650" preserveAspectRatio="none" aria-hidden="true">${routes}</svg>${markers.map(n => `<button class="mizu-map-marker ${n.id === map.selection ? 'active' : ''}" style="left:${n.x * 100}%;top:${n.y * 100}%" data-ws-action="map-select" data-node="${escapeHTML(n.id)}" aria-pressed="${n.id === map.selection}">${n.id === map.current ? '📍 ' : ''}${escapeHTML(nodeLabel(n))}${n.closed && n.known ? ' ⛔' : ''}</button>`).join('')}${map.view !== 'island' ? state.relationships.filter(p => p.knowledge && p.nodeId && nodes.some(n => n.id === p.nodeId && n.known)).map(p => { const n = nodes.find(n => n.id === p.nodeId); return `<span class="mizu-npc-marker" style="left:${n.x * 100}%;top:${n.y * 100 + 5}%">${escapeHTML(p.name)} · ${escapeHTML(p.knowledge)}</span>`; }).join('') : ''}</div><div class="mizu-map-details">${mapDetailHTML()}</div>`, true);
     }
     function mapEditorHTML() {
         const map = state.worldMap;
@@ -504,19 +505,23 @@
     }
     function openWorkspacePanel(id, source) {
         rememberWorkspaceScroll();
+        if (id === 'map-editor' && state.activePage === 'settings') workspaceEditorReturn = { page: 'settings', titleScreen: state.titleScreen };
+        if (workspaceEditorReturn) state.titleScreen = false;
         if (!['home', 'map'].includes(state.activePage)) state.activePage = state.settingsReturnPage === 'map' ? 'map' : 'home';
         workspaceFocusReturn = source?.id || `panel:${id}`;
         workspaceExpanded = id; renderHUD();
         document.querySelector('#mizu-expanded-heading')?.focus();
     }
     function closeWorkspacePanel() {
-        workspaceExpanded = null; renderHUD();
+        workspaceExpanded = null;
+        if (workspaceEditorReturn) { state.activePage = workspaceEditorReturn.page; state.titleScreen = workspaceEditorReturn.titleScreen; workspaceEditorReturn = null; }
+        renderHUD();
         const hud = document.querySelector('#mizuhana-hud');
         if (workspaceFocusReturn.startsWith('panel:')) hud?.querySelector(`[data-panel="${workspaceFocusReturn.slice(6)}"]`)?.focus();
         else if (workspaceFocusReturn) document.getElementById(workspaceFocusReturn)?.focus();
     }
-    function attachWorkspaceListeners(hud) {
-        hud.querySelectorAll('[data-ws-action]').forEach(button => button.addEventListener('click', () => {
+    function bindWorkspaceActions(root, hud) {
+        root.querySelectorAll('[data-ws-action]').forEach(button => button.addEventListener('click', () => {
             const d = button.dataset, map = state.worldMap;
             const node = map.nodes.find(n => n.id === d.node);
             const i = Number(d.index);
@@ -542,9 +547,15 @@
             if (d.wsAction === 'pet-select') state.hudWorkspace.selectedPet = i;
             if (d.wsAction === 'pet-new') state.hudWorkspace.selectedPet = state.pets.length;
             if (d.wsAction === 'pet-action') { const pet = selectedPet(); if (pet) insertIntoComposer(`${d.value} with ${pet.name}.`); return; }
-            if (d.wsAction === 'map-view') { map.view = d.value; map.route = []; }
+            if (d.wsAction === 'map-view') {
+                const selectedRegion = REGION_ANCHORS.find(r => r.id === map.selection)?.id || map.nodes.find(n => n.id === map.selection)?.region;
+                if (selectedRegion) map.region = selectedRegion;
+                map.view = d.value; map.route = [];
+            }
             if (d.wsAction === 'map-region') { map.region = d.region; map.view = 'region'; map.selection = map.nodes.find(n => n.region === d.region)?.id || ''; map.route = []; }
-            if (d.wsAction === 'map-select') { map.selection = d.node; map.route = []; }
+            if (d.wsAction === 'map-select') { selectMapInspection(hud, d.node); return; }
+            if (d.wsAction === 'map-zoom') { inspectCloserMap(mapZoomTarget(map.selection) ? map.selection : nearestMapZoomTarget()); return; }
+            if (d.wsAction === 'map-local') { map.region = d.region; map.view = 'local'; map.route = []; }
             if (d.wsAction === 'map-go') { if (node?.known && !node.closed) insertIntoComposer(`I would like to go to ${nodeLabel(node)}. Please describe the available travel and any current restrictions before we leave.`); return; }
             if (d.wsAction === 'map-route') {
                 const route = routeBetween(map.current, d.node);
@@ -559,7 +570,13 @@
                 form.elements.x.value = node.x * 100; form.elements.y.value = node.y * 100; form.elements.name.focus(); return;
             }
             workspaceCommit();
+            if (d.wsAction === 'map-view') document.querySelector(`#mizuhana-hud [data-ws-action="map-view"][data-value="${d.value}"]`)?.focus({ preventScroll: true });
         }));
+    }
+    function attachWorkspaceListeners(hud) {
+        bindWorkspaceActions(hud, hud);
+        installMapInspection(hud);
+        installDockScrollHandoff(hud);
         hud.querySelectorAll('[data-ws-form]').forEach(form => form.addEventListener('submit', event => {
             event.preventDefault(); const f = new FormData(form); const text = key => wsText(f.get(key), 20000); const w = state.hudWorkspace;
             const type = form.dataset.wsForm;
@@ -671,6 +688,121 @@
         }
         updateMobileComposerSafeZone(hud);
         restoreWorkspaceScroll(hud);
+    }
+
+    // Testing-only comfort and inspection helpers. No gameplay schema change.
+    const TEST_BUILD_VERSION = '0.8.1';
+    // Add only reviewed, geography-aligned artwork (1000 × 650 coordinate space).
+    // Dynamic labels, routes and discoveries stay outside the artwork.
+    const ISLAND_MAP_ART = Object.freeze({ approved: false, src: '' });
+    let composerSizeObserver = null;
+    let composerObservedElement = null;
+    let comfortFrame = null;
+
+    function islandMapArtworkHTML() {
+        return ISLAND_MAP_ART.approved && /^https:\/\//.test(ISLAND_MAP_ART.src)
+            ? `<img class="mizu-map-art" src="${escapeHTML(ISLAND_MAP_ART.src)}" alt="" aria-hidden="true" decoding="async">` : '';
+    }
+    function installMapArtworkFallback(hud) {
+        const image = hud.querySelector('.mizu-map-art');
+        if (!image) return;
+        const ready = () => image.closest('.mizu-map-canvas')?.classList.toggle('mizu-map-art-ready', image.naturalWidth > 0);
+        image.addEventListener('load', ready);
+        image.addEventListener('error', () => image.closest('.mizu-map-canvas')?.classList.remove('mizu-map-art-ready'));
+        if (image.complete) ready();
+    }
+    function localMapExists(region) {
+        return state.worldMap.nodes.some(n => n.region === region && n.scope === 'local' && n.known >= 1);
+    }
+    function mapZoomTarget(id) {
+        const map = state.worldMap;
+        if (map.view === 'island') {
+            const region = REGION_ANCHORS.find(r => r.id === id);
+            return region && map.knownRegions.includes(region.id) ? { view: 'region', region: region.id } : null;
+        }
+        const node = map.nodes.find(n => n.id === id);
+        return map.view === 'region' && node?.known >= 1 && localMapExists(node.region)
+            ? { view: 'local', region: node.region } : null;
+    }
+    function nearestMapZoomTarget(x = .5, y = .5) {
+        const map = state.worldMap;
+        const candidates = map.view === 'island' ? REGION_ANCHORS : map.nodes.filter(n => n.region === map.region && n.scope === 'region');
+        return candidates.filter(n => mapZoomTarget(n.id)).sort((a, b) =>
+            ((a.x - x) ** 2 + (a.y - y) ** 2) - ((b.x - x) ** 2 + (b.y - y) ** 2))[0]?.id || '';
+    }
+    function inspectCloserMap(id) {
+        const target = mapZoomTarget(id);
+        if (!target) return false;
+        const map = state.worldMap;
+        map.view = target.view; map.region = target.region; map.route = [];
+        map.selection = map.nodes.find(n => n.region === target.region && n.scope === (target.view === 'local' ? 'local' : 'region') && n.known >= 1)?.id || '';
+        workspaceCommit('Map view changed');
+        document.querySelector('#mizuhana-hud .mizu-map-scale [aria-pressed="true"]')?.focus({ preventScroll: true });
+        return true;
+    }
+    function selectMapInspection(hud, id) {
+        const map = state.worldMap;
+        map.selection = id; map.route = [];
+        saveState();
+        // Keep the marker DOM in place so the second click can produce dblclick.
+        hud.querySelectorAll('[data-ws-action="map-select"]').forEach(button => {
+            const selected = button.dataset.node === id;
+            button.setAttribute('aria-pressed', String(selected));
+            button.classList.toggle('active', selected);
+        });
+        hud.querySelectorAll('.mizu-map-routes .planned').forEach(line => line.classList.remove('planned'));
+        const details = hud.querySelector('.mizu-map-details');
+        if (details) { details.innerHTML = mapDetailHTML(); bindWorkspaceActions(details, hud); }
+        const zoom = hud.querySelector('[data-ws-action="map-zoom"]');
+        if (zoom) zoom.disabled = !mapZoomTarget(id) && !nearestMapZoomTarget();
+    }
+    function installMapInspection(hud) {
+        const canvas = hud.querySelector('.mizu-map-canvas');
+        if (!canvas) return;
+        canvas.addEventListener('dblclick', event => {
+            const marker = event.target.closest('.mizu-map-marker');
+            if (marker) { event.preventDefault(); inspectCloserMap(marker.dataset.node); return; }
+            if (event.target.closest('button, a, input, select, textarea')) return;
+            const rect = canvas.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            event.preventDefault();
+            inspectCloserMap(nearestMapZoomTarget(clamp((event.clientX - rect.left) / rect.width, 0, 1), clamp((event.clientY - rect.top) / rect.height, 0, 1)));
+        });
+        installMapArtworkFallback(hud);
+    }
+    function installDockScrollHandoff(hud) {
+        if (!hud.classList.contains('mizu-layout-mobile')) return;
+        const dock = hud.querySelector('.mizu-panel-dock'), main = hud.querySelector('#mizu-main');
+        if (!dock || !main) return;
+        // Native vertical chaining remains enabled. Explicitly transfer only
+        // the portion beyond the dock boundary, avoiding two scrolls per gesture.
+        let touch = null;
+        dock.addEventListener('touchstart', event => {
+            touch = event.touches?.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+        }, { passive: true });
+        dock.addEventListener('touchmove', event => {
+            if (!touch || event.touches?.length !== 1) { touch = null; return; }
+            const point = event.touches[0], dy = touch.y - point.clientY, dx = touch.x - point.clientX;
+            touch = { x: point.clientX, y: point.clientY };
+            if (Math.abs(dy) <= Math.abs(dx) || !event.cancelable) return;
+            const remaining = dy < 0 ? dock.scrollTop : Math.max(0, dock.scrollHeight - dock.clientHeight - dock.scrollTop);
+            if (Math.abs(dy) <= remaining) return;
+            const excess = Math.sign(dy) * (Math.abs(dy) - remaining);
+            if ((excess < 0 && main.scrollTop <= 0) || (excess > 0 && main.scrollTop + main.clientHeight >= main.scrollHeight - 1)) return;
+            event.preventDefault();
+            dock.scrollTop += Math.sign(dy) * remaining;
+            main.scrollTop += excess;
+        }, { passive: false });
+        const reset = () => { touch = null; };
+        dock.addEventListener('touchend', reset, { passive: true });
+        dock.addEventListener('touchcancel', reset, { passive: true });
+    }
+    function scheduleComposerBounds() {
+        if (comfortFrame !== null) return;
+        comfortFrame = requestAnimationFrame(() => {
+            comfortFrame = null;
+            updateMobileComposerSafeZone(document.querySelector('#mizuhana-hud'));
+        });
     }
 
 
@@ -805,6 +937,7 @@
 
     function loadSaveSlot(id) {
         workspaceExpanded = null;
+        workspaceEditorReturn = null;
         workspaceScroll = {};
         const slot = state.saveSlots.find(item => item.id === id);
 
@@ -6753,7 +6886,7 @@ Rules:
 
                 <button class="mizu-brand" id="mizu-brand-collapse" type="button"
                     title="Collapse Mizuhana" aria-label="Collapse Mizuhana">
-                    🌺 MIZUHANA <span class="mizu-testing-label">TESTING</span>
+                    🌺 MIZUHANA <span class="mizu-testing-label">v0.8.1 · TESTING</span>
                 </button>
 
                 <div class="mizu-major-tabs" aria-label="Major pages">${pages.map(([id, label]) => `
@@ -7044,6 +7177,8 @@ Rules:
                     <summary class="mizu-label">Advanced</summary>
                     <p class="mizu-muted">Workspace testing uses a separate migrated copy of your saves.</p>
                     <button type="button" class="mizu-button" id="mizu-copy-protocol">Copy workspace narrator protocol</button>
+                    <button type="button" class="mizu-button" id="mizu-map-records" data-ws-action="expand" data-panel="map-editor">Map Records</button>
+                    <p class="mizu-muted">Version v0.8.1 · Testing channel</p>
                     <div class="mizu-label">Layout</div>
                     <div class="mizu-setting-options">
                         ${settingButton('layout', 'auto', 'Automatic', state.layoutPreference)}
@@ -7369,6 +7504,7 @@ Rules:
 
                         rememberWorkspaceScroll();
                         workspaceExpanded = null;
+                        workspaceEditorReturn = null;
                         state.activePage =
                             page;
 
@@ -7388,6 +7524,7 @@ Rules:
         hud.querySelector('#mizu-settings')?.addEventListener('click', () => {
                 rememberWorkspaceScroll();
                 workspaceExpanded = null;
+                workspaceEditorReturn = null;
                 if (state.titleScreen) {
                     if (state.titleMode === 'settings') state.titleMode = state.settingsReturnTitleMode || 'menu';
                     else {
@@ -7720,88 +7857,44 @@ Rules:
        ========================================================= */
 
     function updateMobileComposerSafeZone(hud) {
-
-        if (
-            !hud ||
-            determineLayout() !== 'mobile' ||
-            state.displayMode !== 'compact'
-        ) {
-            return;
-        }
-
-        /*
-           ChatGPT's composer markup changes occasionally, so use several
-           defensive selectors. If none match, CSS keeps a conservative
-           190px protected zone.
-        */
-        const selectors = [
-            '#prompt-textarea',
-            '[data-testid="composer"]',
-            'form[data-type="unified-composer"]',
-            'form'
-        ];
-
-        let composer = null;
-
-        for (const selector of selectors) {
-            const candidate =
-                document.querySelector(selector);
-
-            if (
-                candidate &&
-                !hud.contains(candidate)
-            ) {
-                const rect =
-                    candidate.getBoundingClientRect();
-
-                if (
-                    rect.width > 120 &&
-                    rect.height > 30 &&
-                    rect.bottom > window.innerHeight - 180
-                ) {
-                    composer = candidate;
-                    break;
-                }
+        if (!hud || state.displayMode === 'bar') return;
+        const viewport = window.visualViewport;
+        const visibleTop = viewport?.offsetTop || 0;
+        const visibleBottom = visibleTop + (viewport?.height || window.innerHeight);
+        const prompt = document.querySelector('#prompt-textarea');
+        const candidates = [prompt?.closest('[data-testid="composer"]'), prompt?.closest('form'),
+            document.querySelector('[data-testid="composer"]'), document.querySelector('form[data-type="unified-composer"]'), prompt];
+        let composer = null, composerTop = visibleBottom - 150;
+        for (const el of candidates) {
+            if (!el || hud.contains(el)) continue;
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 120 && rect.height > 20 && rect.bottom > visibleTop && rect.top < visibleBottom) {
+                if (!composer || rect.top < composerTop) { composer = el; composerTop = rect.top; }
             }
         }
-
-        if (!composer) {
-            return;
-        }
-
-        const rect =
-            composer.getBoundingClientRect();
-
-        /*
-           Reserve everything from the composer's top to the viewport
-           bottom, plus a small breathing gap.
-        */
-        const reserved =
-            Math.max(
-                150,
-                Math.ceil(window.innerHeight - rect.top + 14)
-            );
-
-        const maxHeight = Math.max(0, Math.min(
-            window.innerHeight - 12,
-            Math.floor(rect.top - (hud.getBoundingClientRect().top || 6) - 14)
-        ));
-
+        // Read the established CSS size afresh; a former small bound must not
+        // stick after a keyboard closes or a multiline composer becomes short.
+        for (const key of ['height', 'max-height', 'min-height', '--mizu-play-height']) hud.style.removeProperty(key);
+        const rect = hud.getBoundingClientRect();
+        const top = Math.max(visibleTop, rect.top);
+        const available = Math.max(0, Math.floor(Math.min(visibleBottom - 8, composerTop - 14) - top));
+        const preferred = determineLayout() === 'mobile' && state.displayMode === 'compact' ? Math.min(760, available) : rect.height || available;
+        const maxHeight = Math.max(0, Math.min(preferred, available));
         hud.style.setProperty('--mizu-play-height', `${maxHeight}px`);
-        hud.style.height =
-            `${maxHeight}px`;
-
-        hud.style.maxHeight =
-            `${maxHeight}px`;
         hud.style.setProperty('height', `${maxHeight}px`, 'important');
         hud.style.setProperty('max-height', `${maxHeight}px`, 'important');
         hud.style.setProperty('min-height', '0', 'important');
+        hud.classList.toggle('mizu-composer-tight', maxHeight < 460);
+        if (typeof ResizeObserver !== 'undefined' && composerObservedElement !== composer) {
+            composerSizeObserver?.disconnect();
+            composerObservedElement = composer;
+            if (composer) {
+                composerSizeObserver = new ResizeObserver(scheduleComposerBounds);
+                composerSizeObserver.observe(composer);
+            }
+        }
     }
 
-
-    /* =========================================================
-       RESIZE
-       ========================================================= */
 
     let resizeTimer = null;
 
@@ -7834,6 +7927,7 @@ Rules:
         new MutationObserver(() => {
 
             scheduleNarratorStateScan();
+            scheduleComposerBounds();
 
             if (
                 location.href !== previousURL
@@ -8392,7 +8486,7 @@ Rules:
 #mizuhana-hud .mizu-panel-drawer > summary { cursor: pointer; padding: 4px 2px; font-weight: 800; }
 #mizuhana-hud .mizu-panel-rail { display: flex; flex: 0 0 auto; overflow-x: auto; gap: 5px; padding: 3px 2px 7px; scrollbar-width: thin; overscroll-behavior-x: contain; }
 #mizuhana-hud .mizu-panel-rail .mizu-button { flex: 0 0 auto; min-width: 40px; min-height: 40px; }
-#mizuhana-hud .mizu-panel-dock { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 3px 4px 10px 2px; }
+#mizuhana-hud .mizu-panel-dock { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: contain; overscroll-behavior-y: auto; padding: 3px 4px 10px 2px; }
 #mizuhana-hud .mizu-ws-panel { margin: 0 0 9px; border-radius: 10px; scroll-margin-top: 5px; }
 #mizuhana-hud .mizu-ws-panel:not(:has(.mizu-compact-hit)) { border: 1px solid var(--mizu-border); background: var(--mizu-story-surface); }
 #mizuhana-hud .mizu-compact-hit { display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 44px; padding: 12px 13px; border: 0; border-radius: 10px; background: transparent; color: var(--mizu-text); text-align: left; font: inherit; cursor: pointer; }
@@ -8432,15 +8526,12 @@ Rules:
 #mizuhana-hud .mizu-map-marker { position: absolute; transform: translate(-50%, -50%); max-width: 120px; min-height: 38px; padding: 5px 8px; border: 1px solid var(--mizu-border); border-radius: 7px; background: var(--mizu-panel); color: var(--mizu-text); font: inherit; font-size: .8em; cursor: pointer; overflow-wrap: anywhere; z-index: 2; }
 #mizuhana-hud .mizu-map-marker.active { border-width: 2px; }
 #mizuhana-hud .mizu-npc-marker { position: absolute; max-width: 120px; transform: translateX(-50%); font-size: .68em; background: var(--mizu-panel); color: var(--mizu-text); border-radius: 3px; padding: 2px; z-index: 1; }
-#mizuhana-hud .mizu-map-caption { position: absolute; bottom: 3px; left: 5px; right: 5px; background: var(--mizu-panel); padding: 2px 4px; font-size: .65em; }
 #mizuhana-hud .mizu-map-details { overflow-y: auto; max-height: 180px; padding: 7px 0 3px; }
 #mizuhana-hud .mizu-map-details h3 { margin: 0 0 5px; font-size: 1em; }
 #mizuhana-hud .mizu-map-details p { margin: 6px 0; }
 #mizuhana-hud .mizu-map-details .mizu-button { margin: 3px 4px 0 0; }
 #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-workspace-page .mizu-ws-main { grid-template-rows: auto minmax(150px, 1fr) auto !important; gap: 8px; }
 #mizuhana-hud:not(.mizu-layout-mobile):not(.mizu-display-bar) .mizu-ws-expanded-page .mizu-ws-main { display: flex !important; flex-direction: column; }
-#mizuhana-hud:not(.mizu-layout-mobile) .mizu-panel-drawer[open] { height: 0; }
-#mizuhana-hud:not(.mizu-layout-mobile) .mizu-panel-dock { height: calc(100% - 80px); }
 #mizuhana-hud.mizu-layout-mobile .mizu-ws-sidebar { overflow: visible; }
 #mizuhana-hud.mizu-layout-mobile .mizu-panel-dock { max-height: 42dvh; }
 #mizuhana-hud.mizu-layout-mobile .mizu-workspace-page .mizu-ws-main { display: flex !important; flex-direction: column; gap: 8px; }
@@ -8452,9 +8543,49 @@ Rules:
 #mizuhana-hud.mizu-layout-mobile:not(.mizu-display-bar),
 #mizuhana-hud.mizu-layout-mobile.mizu-title-active:not(.mizu-display-bar) { min-height: 0 !important; }
 
+/* Testing comfort pass: preserve preferred proportions, cap only to usable space. */
+#mizuhana-hud:not(.mizu-display-bar) { display: flex !important; flex-direction: column; }
+#mizuhana-hud:not(.mizu-display-bar) > .mizu-nav { flex: 0 0 auto; }
+#mizuhana-hud:not(.mizu-display-bar) > #mizu-main { flex: 1 1 auto; height: auto !important; min-height: 0 !important; }
+#mizuhana-hud:not(.mizu-display-bar) > .mizu-mobile-tabs { flex: 0 0 auto; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-ws-sidebar { overflow-y: auto !important; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-panel-drawer[open] { position: relative; flex: 1 0 140px; height: auto !important; min-height: 140px; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-panel-drawer > summary { height: 32px; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-panel-drawer-content { position: absolute; inset: 32px 0 0; display: flex; flex-direction: column; min-height: 0; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-panel-dock { height: auto; flex: 1 1 0; }
+#mizuhana-hud .mizu-panel-drawer:not([open]) { flex: 0 0 auto; }
+#mizuhana-hud .mizu-panel-dock { overscroll-behavior-x: contain; overscroll-behavior-y: auto; }
+#mizuhana-hud .mizu-panel-rail { overscroll-behavior-x: contain; overscroll-behavior-y: auto; }
+#mizuhana-hud .mizu-panel-rail .mizu-button { min-height: 44px; min-width: 44px; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-workspace-page .mizu-ws-main { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-home > .mizu-scene-panel { overflow-y: auto !important; }
+#mizuhana-hud:not(.mizu-layout-mobile) .mizu-home .mizu-scene-text { min-height: 80px !important; }
+#mizuhana-hud .mizu-map-scale { display: inline-flex; min-width: 0; padding: 3px; gap: 2px; border: 1px solid var(--mizu-border); border-radius: 10px; background: var(--mizu-bg); }
+#mizuhana-hud .mizu-map-scale .mizu-button { min-height: 44px; padding: 7px 12px; border: 1px solid transparent; border-radius: 7px; background: transparent; box-shadow: none; color: var(--mizu-text); }
+#mizuhana-hud .mizu-map-scale .mizu-button[aria-pressed="true"] { border-color: var(--mizu-accent); background: var(--mizu-panel); box-shadow: inset 0 -3px var(--mizu-accent); font-weight: 800; }
+#mizuhana-hud .mizu-map-toolbar { align-items: center; }
+#mizuhana-hud .mizu-map-toolbar > .mizu-button { min-height: 44px; }
+#mizuhana-hud .mizu-map-toolbar .mizu-button:disabled { opacity: .65; cursor: default; }
+#mizuhana-hud .mizu-map-marker { min-height: 44px; min-width: 44px; touch-action: manipulation; }
+#mizuhana-hud .mizu-map-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; visibility: hidden; }
+#mizuhana-hud .mizu-map-art-ready .mizu-map-art { visibility: visible; }
+#mizuhana-hud .mizu-map-art-ready .mizu-map-base { visibility: hidden; }
+/* Short desktop windows keep Destination's outer scroll off; copy scrolls inside. */
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-creator { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-question { flex: 0 0 auto; margin: 2px auto 8px; }
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-content { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-pair { min-height: 0; }
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-stage { min-height: 0; }
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-art { height: 100%; min-height: 0; }
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-side { min-height: 0; overflow-y: auto; justify-content: flex-start; padding: 12px 16px; }
+#mizuhana-hud.mizu-composer-tight:not(.mizu-layout-mobile) .mizu-region-confirm { flex: 0 0 auto; margin: 8px auto 0; }
+@media (prefers-reduced-motion: no-preference) {
+  #mizuhana-hud .mizu-map-scale .mizu-button { transition: background-color .12s ease, border-color .12s ease; }
+}
+
     `);
-    window.visualViewport?.addEventListener('resize', () => updateMobileComposerSafeZone(document.querySelector('#mizuhana-hud')));
-    window.visualViewport?.addEventListener('scroll', () => updateMobileComposerSafeZone(document.querySelector('#mizuhana-hud')));
+    window.visualViewport?.addEventListener('resize', scheduleComposerBounds);
+    window.visualViewport?.addEventListener('scroll', scheduleComposerBounds);
 
 })();
 
