@@ -4,12 +4,14 @@ const assert = require('assert/strict');
 const source = fs.readFileSync(__dirname + '/../mizuhana-testing.user.js', 'utf8');
 const boundary = source.lastIndexOf('    /* =========================================================', source.indexOf('       CHAT IDENTIFICATION'));
 const utilities = source.slice(source.indexOf('    function escapeHTML('), source.indexOf('    const STATE_OPEN'));
-const prefix = source.slice(0, boundary) + utilities + `
-globalThis.api = { get state(){return state}, defaults: DEFAULT_STATE, normalizeWorkspace, migrateWorkspaceState,
+function viewFunction(name) { const start=source.indexOf('    function '+name+'(');return source.slice(start,source.indexOf('\n    function ',start+1)); }
+const viewCode=['formatSaveTime','homeHTML','sceneParagraphsHTML','settingsHTML','settingButton','loadSavesHTML','selectedNewGameRegion','newGamePreviewHTML'].map(viewFunction).join('\n');
+const prefix = source.slice(0, boundary) + utilities + viewCode + `
+globalThis.api = { homeHTML, settingsHTML, loadSavesHTML, newGamePreviewHTML, get state(){return state}, defaults: DEFAULT_STATE, normalizeWorkspace, migrateWorkspaceState,
 loadState, loadSaveSlot, saveState, saveToSlot, captureGameplayState, routeBetween, applyWorkspaceNarratorState,
 workspaceMapHTML, workspaceSidebarHTML, expandedWorkspaceHTML, attachWorkspaceListeners,
 get expanded(){return workspaceExpanded}, set expanded(v){workspaceExpanded=v}, get scroll(){return workspaceScroll},
-rememberWorkspaceScroll, restoreWorkspaceScroll, closeWorkspacePanel, openWorkspacePanel, nodeLabel };
+rememberWorkspaceScroll, restoreWorkspaceScroll, closeWorkspacePanel, openWorkspacePanel, nodeLabel, mapZoomTarget, nearestMapZoomTarget, inspectCloserMap, selectMapInspection, installMapInspection, installDockScrollHandoff, islandMapArtworkHTML, installMapArtworkFallback };
 })();`;
 let persisted = new Map(), rendered = 0, inserted = [];
 const stable = { characterName: 'Axel', titleScreen: false, activePage: 'home', cash: 400,
@@ -21,7 +23,7 @@ const stable = { characterName: 'Axel', titleScreen: false, activePage: 'home', 
 persisted.set('mizuhana-hud-v01', structuredClone(stable));
 const controls = [], forms = [], checkboxes = [];
 const story = { scrollTop: 87 }, main = { scrollTop: 24 }, dock = { scrollTop: 41 }, feedback = { textContent: '' };
-const hud = { dataset: { workspacePage: 'home' }, querySelectorAll(selector) {
+const hud = { classList:{contains:()=>false}, dataset: { workspacePage: 'home' }, querySelectorAll(selector) {
     if (selector === '[data-ws-action]') return controls;
     if (selector === '[data-ws-form]') return forms;
     if (selector.includes('[data-check-index]')) return checkboxes;
@@ -35,10 +37,11 @@ class TestFormData {
     getAll(k){return Array.isArray(this.data[k])?this.data[k]:this.data[k]===undefined?[]:[this.data[k]];}
     has(k){return this.data[k]!==undefined;}
 }
+let testLayout='desktop';
 const context = { structuredClone, Date, Math, JSON, Set, Map, console,
     GM_getValue: (key, fallback) => persisted.has(key) ? structuredClone(persisted.get(key)) : fallback,
     GM_setValue: (key, value) => persisted.set(key, structuredClone(value)),
-    confirm:()=>true, determineLayout:()=> 'desktop', renderHUD:()=>rendered++, FormData:TestFormData,
+    confirm:()=>true, determineLayout:()=> testLayout, renderHUD:()=>rendered++, FormData:TestFormData,
     insertIntoComposer: text=>{inserted.push(text);return true},
     document: { activeElement:null, querySelector:selector=>selector==='#mizuhana-hud'?hud:selector==='#mizu-expanded-heading'?{focus(){}}:selector.includes('feedback')?feedback:null, querySelectorAll:()=>[], getElementById:()=>null }
 };
@@ -89,8 +92,8 @@ petAction.click();assert(inserted.at(-1).includes('Mochi'));assert.equal(a.state
 const time=a.state.time, location=a.state.location;go.click();assert(inserted.at(-1).includes('Secret cave'));assert.equal(a.state.time,time);assert.equal(a.state.location,location,'map click/travel request must not silently move');
 petNew.click();a.expanded='pet';assert(a.expandedWorkspaceHTML().includes('value=""'),'new pet form must be blank');
 a.expanded=null;hud.dataset.workspacePage=a.state.activePage;a.rememberWorkspaceScroll();a.openWorkspacePanel('memo');a.closeWorkspacePanel();assert.equal(a.scroll.home.story,87);story.scrollTop=0;main.scrollTop=0;a.restoreWorkspaceScroll(hud);assert.equal(story.scrollTop,87);assert.equal(main.scrollTop,24);
-for(const id of ['tracker','dock','memo','shopping','tasks','look','pet','inventory','relationships','weather','map-editor']){a.expanded=id;const markup=a.expandedWorkspaceHTML();assert(markup.includes('Close'));if(process.env.MIZUHANA_QA_HTML) fs.writeFileSync(__dirname+'/qa-'+id+'.html',markup);}
-a.expanded=null;if(process.env.MIZUHANA_QA_HTML) {fs.writeFileSync(__dirname+'/qa-home.html',a.workspaceSidebarHTML(false));fs.writeFileSync(__dirname+'/qa-map.html',a.workspaceMapHTML());}
+for(const id of ['tracker','dock','memo','shopping','tasks','look','pet','inventory','relationships','weather','map-editor']){a.expanded=id;const markup=a.expandedWorkspaceHTML();assert(markup.includes('Close'));}
+a.expanded=null;
 const base=fs.readFileSync(__dirname+'/../mizuhana.user.js','utf8');
 const destinationBlock=s=>s.slice(s.indexOf('        /* ---------- Mobile title / destination containment ---------- */'),s.indexOf('        /* The manager and Settings scroll inside'));
 assert.equal(destinationBlock(source),destinationBlock(base),'mobile Destination containment stays exact');
@@ -99,9 +102,92 @@ assert(source.includes("hud.style.setProperty('height', `${maxHeight}px`, 'impor
 const safeSource=source.slice(source.indexOf('    function updateMobileComposerSafeZone('),source.indexOf('    let resizeTimer'));
 let composerTop=250;
 const properties={};
-const safeHud={contains:()=>false,getBoundingClientRect:()=>({top:6}),style:{setProperty:(k,v)=>properties[k]=v}};
-const safeContext={window:{innerHeight:600},state:{displayMode:'compact'},determineLayout:()=> 'mobile',document:{querySelector:()=>({getBoundingClientRect:()=>({top:composerTop,bottom:600,width:350,height:350})})}};
+const safeHud={contains:()=>false,getBoundingClientRect:()=>({top:6,height:700}),classList:{toggle(){}},style:{setProperty:(k,v)=>properties[k]=v,removeProperty:k=>delete properties[k]}};
+const safeContext={window:{innerHeight:600},state:{displayMode:'compact'},determineLayout:()=> 'mobile',document:{querySelector:()=>({closest:()=>null,getBoundingClientRect:()=>({top:composerTop,bottom:600,width:350,height:350})})}};
 vm.createContext(safeContext);vm.runInContext(safeSource+'globalThis.run=updateMobileComposerSafeZone;',safeContext);
 safeContext.run(safeHud);assert(Number.parseInt(properties.height)+6<=composerTop-14,'HUD must stop before the composer with keyboard open');
 composerTop=100;safeContext.run(safeHud);assert(Number.parseInt(properties.height)+6<=86,'small viewports must not force a 330px HUD over the composer');
 console.log('PASS: migration, stable isolation, save-slot separation, permanent local geography, knowledge masking, closures, narrator patches, panel dock, notes, shopping, pet requests, map requests, workspace restoration and editor rendering.');
+// v0.8.1 comfort and map-inspection regression checks.
+a.expanded=null;
+const gameplayBefore=JSON.stringify({time:a.state.time,location:a.state.location,current:a.state.worldMap.current,cash:a.state.cash,energy:a.state.energy});
+let map=a.state.worldMap;
+map.view='island';map.knownRegions=['nagihama'];map.selection='nagihama';
+assert.equal(a.mapZoomTarget('isanami'),null,'undiscovered region cannot be zoomed into');
+assert.equal(a.mapZoomTarget('nagihama').view,'region');
+assert.equal(a.nearestMapZoomTarget(.28,.37),'nagihama');
+assert(a.inspectCloserMap('nagihama'));map=a.state.worldMap;assert.equal(map.view,'region');
+assert(a.inspectCloserMap('nagihama-town'));map=a.state.worldMap;assert.equal(map.view,'local');
+assert.equal(a.inspectCloserMap('legacy-0'),false,'no interior level is invented');
+assert.equal(JSON.stringify({time:a.state.time,location:a.state.location,current:map.current,cash:a.state.cash,energy:a.state.energy}),gameplayBefore,'inspection does not travel, cost, or advance time');
+assert.equal(a.islandMapArtworkHTML(),'','no unapproved art is loaded');
+let artEvents={}, artReady=false;
+const artCanvas={classList:{toggle:(k,v)=>artReady=v,remove:()=>artReady=false}};
+const image={complete:true,naturalWidth:1000,closest:()=>artCanvas,addEventListener:(k,f)=>artEvents[k]=f};
+a.installMapArtworkFallback({querySelector:()=>image});assert(artReady);artEvents.error();assert(!artReady);artEvents.load();assert(artReady);
+// Keep the original marker DOM and focus during single click; populate genuine unknown details.
+const selectedButtons=['legacy-0','legacy-1'].map(id=>({dataset:{node:id},setAttribute(k,v){this[k]=v},classList:{toggle(k,v){this[k]=v}}}));
+const selectedDetails={innerHTML:'',querySelectorAll:()=>[]};let zoomDisabled;
+const selectionHud={querySelectorAll:s=>s.includes('map-select')?selectedButtons:[],querySelector:s=>s==='.mizu-map-details'?selectedDetails:{set disabled(v){zoomDisabled=v}}};
+map.nodes.find(n=>n.id==='legacy-1').known=0;
+const rendersBefore=rendered;a.selectMapInspection(selectionHud,'legacy-1');assert.equal(rendered,rendersBefore);
+assert(selectedDetails.innerHTML.includes('This location has not been discovered.'));assert.equal(selectedButtons[1]['aria-pressed'],'true');
+// Empty-space double-click chooses the closest known geographic anchor near the pointer.
+map.view='island';map.knownRegions=['nagihama','moriyama','isanami','hanaharumi'];
+let canvasEvents={};const canvas={addEventListener:(k,f)=>canvasEvents[k]=f,getBoundingClientRect:()=>({left:10,top:20,width:1000,height:650})};
+a.installMapInspection({querySelector:s=>s==='.mizu-map-canvas'?canvas:null});
+canvasEvents.dblclick({target:{closest:()=>null},clientX:770,clientY:436,preventDefault(){}});map=a.state.worldMap;
+assert.equal(map.view,'region');assert.equal(map.region,'isanami');
+map.view='island';
+canvasEvents.dblclick({target:{closest:s=>s==='.mizu-map-marker'?{dataset:{node:'moriyama'}}:null},preventDefault(){}});map=a.state.worldMap;
+assert.equal(map.region,'moriyama');assert.equal(map.view,'region');
+// Settings editor close returns to the same context, including title-screen Settings.
+a.state.activePage='settings';a.state.titleScreen=true;
+a.openWorkspacePanel('map-editor',{id:'mizu-map-records'});assert.equal(a.state.titleScreen,false);assert.equal(a.expanded,'map-editor');
+a.closeWorkspacePanel();assert.equal(a.state.activePage,'settings');assert.equal(a.state.titleScreen,true);
+a.state.titleScreen=false;a.state.activePage='home';
+let touchEvents={};const touchDock={scrollTop:0,scrollHeight:600,clientHeight:200,addEventListener:(k,f)=>touchEvents[k]=f};
+const touchMain={scrollTop:300,scrollHeight:1600,clientHeight:400};
+a.installDockScrollHandoff({classList:{contains:()=>true},querySelector:s=>s==='.mizu-panel-dock'?touchDock:touchMain});
+const point=(x,y)=>({touches:[{clientX:x,clientY:y}]});
+let touchPrevented=0;
+function move(x,y){touchEvents.touchmove({...point(x,y),cancelable:true,preventDefault(){touchPrevented++;}});}
+touchEvents.touchstart(point(10,100));move(10,130);assert.equal(touchMain.scrollTop,270);assert.equal(touchPrevented,1,'top boundary chains toward Tracker');
+touchDock.scrollTop=100;touchEvents.touchstart(point(10,100));move(10,130);assert.equal(touchMain.scrollTop,270,'interior movement stays native');
+touchDock.scrollTop=10;touchEvents.touchstart(point(10,100));move(10,130);assert.equal(touchDock.scrollTop,0);assert.equal(touchMain.scrollTop,250,'only boundary remainder transfers');
+touchEvents.touchstart(point(10,100));move(60,110);assert.equal(touchMain.scrollTop,250,'horizontal swipe is not consumed');
+touchDock.scrollTop=400;touchEvents.touchstart(point(10,100));move(10,80);assert.equal(touchMain.scrollTop,270,'bottom chaining transfers to parent');
+touchEvents.touchcancel();move(10,100);assert.equal(touchMain.scrollTop,270);
+// Composer clearance across all layouts, modes, viewport/keyboard sizes and shell pages.
+for(const layout of ['desktop','compact','mobile'])for(const display of ['full','compact'])for(const height of [320,600,900]) {
+ safeContext.determineLayout=()=>layout;safeContext.state.displayMode=display;safeContext.window.innerHeight=height;
+ for(const top of [80,200,height-90]) {composerTop=top;safeContext.run(safeHud);assert(Number.parseInt(properties.height)+6<=top-14);}
+}
+composerTop=570;safeContext.window={innerHeight:900,visualViewport:{offsetTop:200,height:450}};safeContext.run(safeHud);assert(Number.parseInt(properties.height)+200<=556,'panned keyboard viewport respected');
+safeContext.window={innerHeight:900};safeContext.document={querySelector:()=>null};safeContext.run(safeHud);assert(Number.parseInt(properties.height)+6<=750,'missing composer keeps a protected fallback');
+assert(source.includes('new ResizeObserver(scheduleComposerBounds)'),'growing composer is observed');
+const settingsSource=source.slice(source.indexOf('    function settingsHTML()'),source.indexOf('    function settingButton('));
+assert(settingsSource.indexOf('Advanced')<settingsSource.indexOf('id="mizu-map-records"'));
+for(const theme of ['nagihama','isanami','moriyama','hanaharumi','mizuhana']) {
+ a.state.hudTheme=theme;map.view='island';a.expanded=null;
+ const markup=a.workspaceMapHTML();
+ assert(markup.includes('role="group" aria-label="Geographic scale"'));assert.equal((markup.match(/data-ws-action="map-view"/g)||[]).length,3);
+ assert(!markup.includes('Map records'));assert(!markup.includes('Schematic ·'));assert(!markup.includes('Contextual destinations'));
+ assert(markup.includes('preserveAspectRatio="none"'),'dynamic and base coordinates align');
+ assert(a.workspaceSidebarHTML(false).includes('mizu-panel-drawer-content'));
+}
+const baseline=base;
+function between(text,a,b){return text.slice(text.indexOf(a),text.indexOf(b,text.indexOf(a)));}
+assert.equal(between(source,'    function selectedNewGameRegion()','    function navHTML('),between(baseline,'    function selectedNewGameRegion()','    function navHTML('),'new-game/Destination flow untouched');
+console.log('PASS: v0.8.1 scale controls, click stability, pointer/marker zoom, unknown details, art fallback, Settings return, touch chaining, all-layout composer bounds, five-theme shared markup and Character Creation deferral.');
+
+for(const theme of ['nagihama','isanami','moriyama','hanaharumi','mizuhana'])for(const layout of ['desktop','compact','mobile']) {
+ testLayout=layout;a.state.hudTheme=theme;a.expanded=null;
+ const views={home:a.homeHTML(),destination:a.newGamePreviewHTML(),map:a.workspaceMapHTML(),settings:a.settingsHTML(),saves:a.loadSavesHTML(true)};
+ for(const [page,markup] of Object.entries(views)) { assert(markup.includes('mizu-'));assert(!markup.includes('undefined')); }
+ assert(views.home.includes('mizu-scene-text'));assert(views.home.includes('mizu-choices'));assert(views.home.includes('mizu-panel-dock'));
+ assert(views.destination.includes('mizu-region-description'));assert(views.destination.includes('WELCOME TO MIZUHANA'));
+ assert(views.settings.includes('id="mizu-map-records"'));assert(views.saves.includes('mizu-save-back'));
+ 
+}
+console.log('PASS: Home/Destination/Map/Settings/Save Manager markup under five themes and three layouts.');
